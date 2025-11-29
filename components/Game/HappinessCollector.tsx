@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Trophy, RefreshCw, Play, Crown, X } from 'lucide-react';
+import { Trophy, RefreshCw, Play, Crown, X, Heart } from 'lucide-react';
 
 interface GameItem {
   x: number;
@@ -51,6 +51,7 @@ const HappinessCollector: React.FC = () => {
   const [score, setScore] = useState(0);
   const [highScore, setHighScore] = useState(0);
   const [combo, setCombo] = useState(1);
+  const [lives, setLives] = useState(4);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
 
@@ -71,6 +72,7 @@ const HappinessCollector: React.FC = () => {
     lastSpawn: 0,
     score: 0,
     combo: 1,
+    lives: 4,
     difficultyMultiplier: 1,
     shake: 0, // Screen shake magnitude
     gameLoopId: 0,
@@ -270,6 +272,7 @@ const HappinessCollector: React.FC = () => {
     stateRef.current.floatingTexts = [];
     stateRef.current.score = 0;
     stateRef.current.combo = 1;
+    stateRef.current.lives = 4;
     stateRef.current.difficultyMultiplier = 1;
     stateRef.current.frameCount = 0;
     stateRef.current.shake = 0;
@@ -287,6 +290,7 @@ const HappinessCollector: React.FC = () => {
 
     setScore(0);
     setCombo(1);
+    setLives(4);
   };
 
   const stopGame = () => {
@@ -418,25 +422,32 @@ const HappinessCollector: React.FC = () => {
 
       if (distance < playerRadius + 30) {
         if (item.type === 'cloud') {
-           // BAD
+           // BAD - Hit a cloud, lose a life
            state.shake = 20; // Trigger Screen Shake
            state.combo = 1;
            setCombo(1);
-           const penalty = 50;
-           state.score = Math.max(0, state.score - penalty);
-           setScore(state.score);
+           
+           // Lose a life
+           state.lives -= 1;
+           setLives(state.lives);
+           
            createExplosion(item.x, item.y, '#1E293B', 20);
            
            state.floatingTexts.push({
              x: state.playerX,
              y: playerY - 40,
-             text: `-${penalty}`,
+             text: `-1 ❤️`,
              life: 1,
              id: Math.random(),
              color: '#EF4444',
              velocity: 1,
              size: 30
            });
+           
+           // Check for game over
+           if (state.lives <= 0) {
+             setIsPlaying(false);
+           }
         } else {
            // GOOD
            const basePoints = item.type === 'star' ? 20 : 10;
@@ -598,6 +609,7 @@ const HappinessCollector: React.FC = () => {
                 <div className="mb-8">
                     <p className="text-gray-500 text-lg">Skorun</p>
                     <p className="text-4xl font-heading text-psiko-teal mb-2">{score}</p>
+                    {lives === 0 && <p className="text-soft-coral font-bold text-xl mb-2">Oyun Bitti! 💔</p>}
                     {score >= highScore && score > 0 && <p className="text-sun-yellow font-bold animate-pulse">Yeni Rekor! 🏆</p>}
                     <div className="text-sm text-gray-400 mt-2 bg-gray-100 px-3 py-1 rounded-full inline-block">
                         En Yüksek: {highScore}
@@ -605,7 +617,7 @@ const HappinessCollector: React.FC = () => {
                 </div>
             ) : (
                 <p className="text-gray-600 mb-8 max-w-xs">
-                   Psiko-Bulut ile gökyüzünden dökülen pozitif duyguları topla! Kötü bulutlardan kaç ve kombo yap!
+                   Psiko-Bulut ile gökyüzünden dökülen pozitif duyguları topla! Kötü bulutlardan kaç - 4 canın var!
                 </p>
             )}
 
@@ -633,10 +645,27 @@ const HappinessCollector: React.FC = () => {
             </div>
         </div>
         
-        {/* Hide Highscore in HUD if Exit button is taking up space, show in center instead or pad */}
-        <div className={`bg-white/60 backdrop-blur px-4 py-2 rounded-2xl shadow-sm flex items-center gap-2 text-sm font-bold text-gray-500 ${isFullScreen ? 'mr-16' : ''}`}>
-            <Crown size={16} className="text-sun-yellow fill-current" />
-            {highScore}
+        <div className="flex gap-2 items-center">
+          {/* Lives Display */}
+          <div className="bg-white/90 backdrop-blur px-4 py-2 rounded-2xl shadow-md flex items-center gap-2 border border-white/50">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <Heart
+                key={index}
+                size={20}
+                className={`${
+                  index < lives 
+                    ? 'text-soft-coral fill-soft-coral' 
+                    : 'text-gray-300 fill-gray-300'
+                } transition-all`}
+              />
+            ))}
+          </div>
+          
+          {/* High Score */}
+          <div className={`bg-white/60 backdrop-blur px-4 py-2 rounded-2xl shadow-sm flex items-center gap-2 text-sm font-bold text-gray-500 ${isFullScreen ? 'mr-16' : ''}`}>
+              <Crown size={16} className="text-sun-yellow fill-current" />
+              {highScore}
+          </div>
         </div>
       </div>
 
@@ -653,7 +682,7 @@ const HappinessCollector: React.FC = () => {
             <div className="flex justify-center gap-4 text-xs md:text-sm font-bold text-deep-slate/70">
                 <span className="flex items-center gap-1 bg-white/50 px-2 py-1 rounded-lg"><span className="text-lg">❤️</span> +10</span>
                 <span className="flex items-center gap-1 bg-white/50 px-2 py-1 rounded-lg"><span className="text-lg">🌟</span> +20</span>
-                <span className="flex items-center gap-1 bg-white/50 px-2 py-1 rounded-lg"><span className="text-lg">☁️</span> -50</span>
+                <span className="flex items-center gap-1 bg-white/50 px-2 py-1 rounded-lg"><span className="text-lg">☁️</span> -1 Can</span>
             </div>
         </div>
       )}
