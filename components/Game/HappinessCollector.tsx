@@ -52,6 +52,7 @@ const HappinessCollector: React.FC = () => {
   const [highScore, setHighScore] = useState(0);
   const [combo, setCombo] = useState(1);
   const [lives, setLives] = useState(4);
+  const [timeOfDay, setTimeOfDay] = useState<'day' | 'night'>('day');
   const [isPlaying, setIsPlaying] = useState(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
 
@@ -76,6 +77,7 @@ const HappinessCollector: React.FC = () => {
     difficultyMultiplier: 1,
     shake: 0, // Screen shake magnitude
     timeOfDay: 'day' as 'day' | 'night', // Day/Night cycle
+    dayNightTransition: 0, // 0 = full day, 1 = full night (smooth transition)
     gameLoopId: 0,
     width: 0,
     height: 0,
@@ -278,6 +280,7 @@ const HappinessCollector: React.FC = () => {
     stateRef.current.frameCount = 0;
     stateRef.current.shake = 0;
     stateRef.current.timeOfDay = 'day';
+    stateRef.current.dayNightTransition = 0;
     
     stateRef.current.bgClouds = [];
     for(let i=0; i<8; i++) { // More background clouds for larger screens
@@ -293,6 +296,7 @@ const HappinessCollector: React.FC = () => {
     setScore(0);
     setCombo(1);
     setLives(4);
+    setTimeOfDay('day');
   };
 
   const stopGame = () => {
@@ -358,10 +362,26 @@ const HappinessCollector: React.FC = () => {
     // Difficulty Scaling (Every 500 points increases speed by 10%)
     state.difficultyMultiplier = 1 + Math.floor(state.score / 500) * 0.1;
 
-    // Day/Night Cycle based on score
+    // Day/Night Cycle based on score - Smooth Transition
     // 0-300: Day, 300-600: Night, 600-900: Day, 900+: Night (cycles every 300 points)
     const cyclePosition = Math.floor(state.score / 300) % 2;
-    state.timeOfDay = cyclePosition === 0 ? 'day' : 'night';
+    const targetTimeOfDay = cyclePosition === 0 ? 'day' : 'night';
+    
+    // Smooth transition over 60 frames (1 second at 60fps)
+    const targetTransition = targetTimeOfDay === 'night' ? 1 : 0;
+    const transitionSpeed = 0.02; // Slower = smoother
+    
+    if (state.dayNightTransition < targetTransition) {
+      state.dayNightTransition = Math.min(targetTransition, state.dayNightTransition + transitionSpeed);
+    } else if (state.dayNightTransition > targetTransition) {
+      state.dayNightTransition = Math.max(targetTransition, state.dayNightTransition - transitionSpeed);
+    }
+    
+    // Update state when transition completes
+    if (state.timeOfDay !== targetTimeOfDay && Math.abs(state.dayNightTransition - targetTransition) < 0.01) {
+      state.timeOfDay = targetTimeOfDay;
+      setTimeOfDay(targetTimeOfDay);
+    }
 
     // LERP Player
     state.playerX += (state.targetPlayerX - state.playerX) * 0.15;
@@ -495,27 +515,45 @@ const HappinessCollector: React.FC = () => {
     if (!ctx) return;
     const state = stateRef.current;
 
-    // Dynamic background based on time of day
-    const isNight = state.timeOfDay === 'night';
-    const bgGradientStart = isNight ? '#1a1a2e' : '#E0F7FA';
-    const bgGradientEnd = isNight ? '#16213e' : '#FFF8E8';
+    // Dynamic background based on time of day with smooth transition
+    const transition = state.dayNightTransition; // 0 = day, 1 = night
+    
+    // Interpolate colors
+    const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+    
+    // Day colors
+    const dayStartR = 224, dayStartG = 247, dayStartB = 250; // #E0F7FA
+    const dayEndR = 255, dayEndG = 248, dayEndB = 232; // #FFF8E8
+    
+    // Night colors
+    const nightStartR = 26, nightStartG = 26, nightStartB = 46; // #1a1a2e
+    const nightEndR = 22, nightEndG = 33, nightEndB = 62; // #16213e
+    
+    // Interpolated colors
+    const bgStartR = lerp(dayStartR, nightStartR, transition);
+    const bgStartG = lerp(dayStartG, nightStartG, transition);
+    const bgStartB = lerp(dayStartB, nightStartB, transition);
+    
+    const bgEndR = lerp(dayEndR, nightEndR, transition);
+    const bgEndG = lerp(dayEndG, nightEndG, transition);
+    const bgEndB = lerp(dayEndB, nightEndB, transition);
     
     // Create gradient
     const gradient = ctx.createLinearGradient(0, 0, 0, state.height);
-    gradient.addColorStop(0, bgGradientStart);
-    gradient.addColorStop(1, bgGradientEnd);
+    gradient.addColorStop(0, `rgb(${bgStartR}, ${bgStartG}, ${bgStartB})`);
+    gradient.addColorStop(1, `rgb(${bgEndR}, ${bgEndG}, ${bgEndB})`);
     
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, state.width, state.height);
     
-    // Draw stars if night
-    if (isNight) {
+    // Draw stars with smooth fade in/out
+    if (transition > 0.1) {
       ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
       for (let i = 0; i < 50; i++) {
-        const x = (i * 137.5) % state.width; // Distributed stars
+        const x = (i * 137.5) % state.width;
         const y = (i * 73.2) % state.height;
         const twinkle = Math.sin(state.frameCount * 0.05 + i) * 0.5 + 0.5;
-        ctx.globalAlpha = twinkle * 0.8;
+        ctx.globalAlpha = twinkle * 0.8 * transition; // Fade based on transition
         ctx.beginPath();
         ctx.arc(x, y, 1.5, 0, Math.PI * 2);
         ctx.fill();
@@ -534,7 +572,7 @@ const HappinessCollector: React.FC = () => {
 
     // Background Clouds (adjust opacity based on time)
     state.bgClouds.forEach(cloud => {
-        const cloudOpacity = isNight ? cloud.opacity * 0.3 : cloud.opacity;
+        const cloudOpacity = lerp(cloud.opacity, cloud.opacity * 0.3, transition);
         drawCloudShape(ctx, cloud.x, cloud.y, cloud.scale, `rgba(255, 255, 255, ${cloudOpacity})`);
     });
 
@@ -615,7 +653,7 @@ const HappinessCollector: React.FC = () => {
 
   // Determine container classes based on fullscreen state
   const containerClasses = isFullScreen 
-    ? "fixed inset-0 z-50 w-full h-full bg-[#E0F7FA]"
+    ? `fixed inset-0 z-50 w-full h-full transition-colors duration-1000 ${timeOfDay === 'night' ? 'bg-[#1a1a2e]' : 'bg-[#E0F7FA]'}`
     : "w-full max-w-2xl mx-auto glass-panel rounded-3xl overflow-hidden relative shadow-2xl transform hover:scale-[1.01] transition-all duration-300 h-[500px]";
 
   return (
@@ -625,7 +663,9 @@ const HappinessCollector: React.FC = () => {
       {isFullScreen && (
           <button 
             onClick={stopGame}
-            className="absolute top-4 right-4 z-50 bg-white/50 backdrop-blur hover:bg-white text-deep-slate p-2 rounded-full shadow-lg transition-all"
+            className={`absolute top-4 left-4 z-50 backdrop-blur hover:bg-white p-2 rounded-full shadow-lg transition-all ${
+              timeOfDay === 'night' ? 'bg-white/30 text-white' : 'bg-white/50 text-deep-slate'
+            }`}
           >
             <X size={20} />
           </button>
@@ -668,12 +708,16 @@ const HappinessCollector: React.FC = () => {
 
       {/* HUD */}
       <div className="absolute top-4 left-2 right-2 sm:left-4 sm:right-4 z-10 pointer-events-none">
-        {/* Top Row - Score and Lives */}
-        <div className="flex justify-between items-start gap-2 mb-2">
+        <div className="flex justify-between items-start gap-2">
+          {/* Left Side - Score and Combo */}
           <div className="flex gap-2 flex-wrap max-w-[60%] sm:max-w-none">
-            <div className="bg-white/90 backdrop-blur px-3 sm:px-5 py-1.5 sm:py-2 rounded-2xl shadow-md flex items-center gap-1.5 sm:gap-2 border border-white/50">
-                <Trophy className="text-psiko-teal" size={18} />
-                <span className="font-heading text-lg sm:text-xl text-deep-slate">{score}</span>
+            <div className={`backdrop-blur px-3 sm:px-5 py-1.5 sm:py-2 rounded-2xl shadow-md flex items-center gap-1.5 sm:gap-2 border transition-colors duration-1000 ${
+              timeOfDay === 'night' 
+                ? 'bg-white/20 border-white/30 text-white' 
+                : 'bg-white/90 border-white/50 text-deep-slate'
+            }`}>
+                <Trophy className={timeOfDay === 'night' ? 'text-sun-yellow' : 'text-psiko-teal'} size={18} />
+                <span className="font-heading text-lg sm:text-xl">{score}</span>
             </div>
             {/* Combo Indicator */}
             <div className={`bg-sun-yellow text-deep-slate px-3 sm:px-4 py-1.5 sm:py-2 rounded-2xl shadow-md font-heading font-bold text-sm sm:text-base transition-all transform ${combo > 1 ? 'opacity-100 scale-100' : 'opacity-0 scale-50'}`}>
@@ -681,9 +725,14 @@ const HappinessCollector: React.FC = () => {
             </div>
           </div>
           
-          <div className="flex flex-col sm:flex-row gap-2 items-end sm:items-center">
+          {/* Right Side - Lives and High Score (Stacked) */}
+          <div className="flex flex-col gap-2 items-end">
             {/* Lives Display */}
-            <div className="bg-white/90 backdrop-blur px-2 sm:px-3 py-1.5 sm:py-2 rounded-2xl shadow-md flex items-center gap-1 sm:gap-1.5 border border-white/50">
+            <div className={`backdrop-blur px-2 sm:px-3 py-1.5 sm:py-2 rounded-2xl shadow-md flex items-center gap-1 sm:gap-1.5 border transition-colors duration-1000 ${
+              timeOfDay === 'night' 
+                ? 'bg-white/20 border-white/30' 
+                : 'bg-white/90 border-white/50'
+            }`}>
               {Array.from({ length: 4 }).map((_, index) => (
                 <Heart
                   key={index}
@@ -691,14 +740,20 @@ const HappinessCollector: React.FC = () => {
                   className={`${
                     index < lives 
                       ? 'text-soft-coral fill-soft-coral' 
+                      : timeOfDay === 'night'
+                      ? 'text-white/30 fill-white/30'
                       : 'text-gray-300 fill-gray-300'
-                  } transition-all`}
+                  } transition-all duration-300`}
                 />
               ))}
             </div>
             
             {/* High Score */}
-            <div className="bg-white/60 backdrop-blur px-2 sm:px-3 py-1 sm:py-1.5 rounded-2xl shadow-sm flex items-center gap-1 sm:gap-2 text-xs sm:text-sm font-bold text-gray-500">
+            <div className={`backdrop-blur px-2 sm:px-3 py-1 sm:py-1.5 rounded-2xl shadow-sm flex items-center gap-1 sm:gap-2 text-xs sm:text-sm font-bold transition-colors duration-1000 ${
+              timeOfDay === 'night' 
+                ? 'bg-white/10 text-white/80' 
+                : 'bg-white/60 text-gray-500'
+            }`}>
                 <Crown size={14} className="text-sun-yellow fill-current" />
                 <span className="hidden sm:inline">{highScore}</span>
                 <span className="sm:hidden">{highScore > 999 ? `${Math.floor(highScore/1000)}k` : highScore}</span>
