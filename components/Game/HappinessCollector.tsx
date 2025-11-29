@@ -91,13 +91,28 @@ const HappinessCollector: React.FC = () => {
     ctx.translate(x, y);
     ctx.scale(scale, scale);
     ctx.fillStyle = color;
+    
+    // Draw cloud using overlapping circles for smooth appearance
     ctx.beginPath();
     ctx.arc(-25, 0, 25, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.beginPath();
     ctx.arc(25, 0, 35, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.beginPath();
     ctx.arc(55, 0, 25, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.beginPath();
     ctx.arc(0, -25, 25, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.beginPath();
     ctx.arc(35, -20, 28, 0, Math.PI * 2);
     ctx.fill();
+    
     ctx.restore();
   };
 
@@ -149,10 +164,6 @@ const HappinessCollector: React.FC = () => {
     ctx.moveTo(0, 0);
     ctx.bezierCurveTo(-10, -10, -20, 5, 0, 20);
     ctx.bezierCurveTo(20, 5, 10, -10, 0, 0);
-    ctx.fill();
-    ctx.fillStyle = 'rgba(255,255,255,0.3)'; // Shine
-    ctx.beginPath();
-    ctx.arc(-5, -5, 3, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
   };
