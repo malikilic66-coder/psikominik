@@ -75,6 +75,7 @@ const HappinessCollector: React.FC = () => {
     lives: 4,
     difficultyMultiplier: 1,
     shake: 0, // Screen shake magnitude
+    timeOfDay: 'day' as 'day' | 'night', // Day/Night cycle
     gameLoopId: 0,
     width: 0,
     height: 0,
@@ -276,6 +277,7 @@ const HappinessCollector: React.FC = () => {
     stateRef.current.difficultyMultiplier = 1;
     stateRef.current.frameCount = 0;
     stateRef.current.shake = 0;
+    stateRef.current.timeOfDay = 'day';
     
     stateRef.current.bgClouds = [];
     for(let i=0; i<8; i++) { // More background clouds for larger screens
@@ -355,6 +357,11 @@ const HappinessCollector: React.FC = () => {
 
     // Difficulty Scaling (Every 500 points increases speed by 10%)
     state.difficultyMultiplier = 1 + Math.floor(state.score / 500) * 0.1;
+
+    // Day/Night Cycle based on score
+    // 0-300: Day, 300-600: Night, 600-900: Day, 900+: Night (cycles every 300 points)
+    const cyclePosition = Math.floor(state.score / 300) % 2;
+    state.timeOfDay = cyclePosition === 0 ? 'day' : 'night';
 
     // LERP Player
     state.playerX += (state.targetPlayerX - state.playerX) * 0.15;
@@ -488,7 +495,33 @@ const HappinessCollector: React.FC = () => {
     if (!ctx) return;
     const state = stateRef.current;
 
-    ctx.clearRect(0, 0, state.width, state.height);
+    // Dynamic background based on time of day
+    const isNight = state.timeOfDay === 'night';
+    const bgGradientStart = isNight ? '#1a1a2e' : '#E0F7FA';
+    const bgGradientEnd = isNight ? '#16213e' : '#FFF8E8';
+    
+    // Create gradient
+    const gradient = ctx.createLinearGradient(0, 0, 0, state.height);
+    gradient.addColorStop(0, bgGradientStart);
+    gradient.addColorStop(1, bgGradientEnd);
+    
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, state.width, state.height);
+    
+    // Draw stars if night
+    if (isNight) {
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+      for (let i = 0; i < 50; i++) {
+        const x = (i * 137.5) % state.width; // Distributed stars
+        const y = (i * 73.2) % state.height;
+        const twinkle = Math.sin(state.frameCount * 0.05 + i) * 0.5 + 0.5;
+        ctx.globalAlpha = twinkle * 0.8;
+        ctx.beginPath();
+        ctx.arc(x, y, 1.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    }
     
     ctx.save();
     
@@ -499,9 +532,10 @@ const HappinessCollector: React.FC = () => {
         ctx.translate(dx, dy);
     }
 
-    // Background Clouds
+    // Background Clouds (adjust opacity based on time)
     state.bgClouds.forEach(cloud => {
-        drawCloudShape(ctx, cloud.x, cloud.y, cloud.scale, `rgba(255, 255, 255, ${cloud.opacity})`);
+        const cloudOpacity = isNight ? cloud.opacity * 0.3 : cloud.opacity;
+        drawCloudShape(ctx, cloud.x, cloud.y, cloud.scale, `rgba(255, 255, 255, ${cloudOpacity})`);
     });
 
     // Particles
@@ -591,9 +625,9 @@ const HappinessCollector: React.FC = () => {
       {isFullScreen && (
           <button 
             onClick={stopGame}
-            className="absolute top-6 right-6 z-50 bg-white/50 backdrop-blur hover:bg-white text-deep-slate p-3 rounded-full shadow-lg transition-all"
+            className="absolute top-4 right-4 z-50 bg-white/50 backdrop-blur hover:bg-white text-deep-slate p-2 rounded-full shadow-lg transition-all"
           >
-            <X size={32} />
+            <X size={20} />
           </button>
       )}
 
@@ -633,38 +667,42 @@ const HappinessCollector: React.FC = () => {
       )}
 
       {/* HUD */}
-      <div className="absolute top-4 left-4 right-4 flex justify-between items-center z-10 pointer-events-none">
-        <div className="flex gap-2">
-            <div className="bg-white/90 backdrop-blur px-5 py-2 rounded-2xl shadow-md flex items-center gap-2 border border-white/50">
-                <Trophy className="text-psiko-teal" size={20} />
-                <span className="font-heading text-xl text-deep-slate">{score}</span>
+      <div className="absolute top-4 left-2 right-2 sm:left-4 sm:right-4 z-10 pointer-events-none">
+        {/* Top Row - Score and Lives */}
+        <div className="flex justify-between items-start gap-2 mb-2">
+          <div className="flex gap-2 flex-wrap max-w-[60%] sm:max-w-none">
+            <div className="bg-white/90 backdrop-blur px-3 sm:px-5 py-1.5 sm:py-2 rounded-2xl shadow-md flex items-center gap-1.5 sm:gap-2 border border-white/50">
+                <Trophy className="text-psiko-teal" size={18} />
+                <span className="font-heading text-lg sm:text-xl text-deep-slate">{score}</span>
             </div>
             {/* Combo Indicator */}
-            <div className={`bg-sun-yellow text-deep-slate px-4 py-2 rounded-2xl shadow-md font-heading font-bold transition-all transform ${combo > 1 ? 'opacity-100 scale-100' : 'opacity-0 scale-50'}`}>
-                {combo}x COMBO!
+            <div className={`bg-sun-yellow text-deep-slate px-3 sm:px-4 py-1.5 sm:py-2 rounded-2xl shadow-md font-heading font-bold text-sm sm:text-base transition-all transform ${combo > 1 ? 'opacity-100 scale-100' : 'opacity-0 scale-50'}`}>
+                {combo}x
             </div>
-        </div>
-        
-        <div className="flex gap-2 items-center">
-          {/* Lives Display */}
-          <div className="bg-white/90 backdrop-blur px-4 py-2 rounded-2xl shadow-md flex items-center gap-2 border border-white/50">
-            {Array.from({ length: 4 }).map((_, index) => (
-              <Heart
-                key={index}
-                size={20}
-                className={`${
-                  index < lives 
-                    ? 'text-soft-coral fill-soft-coral' 
-                    : 'text-gray-300 fill-gray-300'
-                } transition-all`}
-              />
-            ))}
           </div>
           
-          {/* High Score */}
-          <div className={`bg-white/60 backdrop-blur px-4 py-2 rounded-2xl shadow-sm flex items-center gap-2 text-sm font-bold text-gray-500 ${isFullScreen ? 'mr-16' : ''}`}>
-              <Crown size={16} className="text-sun-yellow fill-current" />
-              {highScore}
+          <div className="flex flex-col sm:flex-row gap-2 items-end sm:items-center">
+            {/* Lives Display */}
+            <div className="bg-white/90 backdrop-blur px-2 sm:px-3 py-1.5 sm:py-2 rounded-2xl shadow-md flex items-center gap-1 sm:gap-1.5 border border-white/50">
+              {Array.from({ length: 4 }).map((_, index) => (
+                <Heart
+                  key={index}
+                  size={16}
+                  className={`${
+                    index < lives 
+                      ? 'text-soft-coral fill-soft-coral' 
+                      : 'text-gray-300 fill-gray-300'
+                  } transition-all`}
+                />
+              ))}
+            </div>
+            
+            {/* High Score */}
+            <div className="bg-white/60 backdrop-blur px-2 sm:px-3 py-1 sm:py-1.5 rounded-2xl shadow-sm flex items-center gap-1 sm:gap-2 text-xs sm:text-sm font-bold text-gray-500">
+                <Crown size={14} className="text-sun-yellow fill-current" />
+                <span className="hidden sm:inline">{highScore}</span>
+                <span className="sm:hidden">{highScore > 999 ? `${Math.floor(highScore/1000)}k` : highScore}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -673,7 +711,7 @@ const HappinessCollector: React.FC = () => {
         ref={canvasRef}
         onMouseMove={handleMouseMove}
         onTouchMove={handleTouchMove}
-        className="w-full h-full bg-gradient-to-b from-[#E0F7FA] to-[#FFF8E8] cursor-none touch-none block"
+        className="w-full h-full cursor-none touch-none block"
       />
 
       {/* Instruction Footer - Only show if not full screen or if paused */}
