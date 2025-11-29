@@ -601,12 +601,29 @@ const HappinessCollector: React.FC = () => {
     state.floatingTexts.forEach(ft => {
       ctx.font = `bold ${ft.size}px Fredoka`;
       ctx.fillStyle = ft.color;
-      ctx.strokeStyle = '#fff';
-      ctx.lineWidth = 3;
+      
+      // Add stroke/shadow only in day mode for better visibility
+      if (transition < 0.5) {
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 3;
+        ctx.strokeText(ft.text, ft.x - 20, ft.y);
+      } else {
+        // Night mode - darker shadow for contrast
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+        ctx.shadowBlur = 8;
+        ctx.shadowOffsetX = 2;
+        ctx.shadowOffsetY = 2;
+      }
+      
       ctx.globalAlpha = ft.life;
-      ctx.strokeText(ft.text, ft.x - 20, ft.y);
       ctx.fillText(ft.text, ft.x - 20, ft.y);
       ctx.globalAlpha = 1;
+      
+      // Reset shadow
+      ctx.shadowColor = 'transparent';
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 0;
     });
 
     ctx.restore();
@@ -663,11 +680,11 @@ const HappinessCollector: React.FC = () => {
       {isFullScreen && (
           <button 
             onClick={stopGame}
-            className={`absolute top-4 left-4 z-50 backdrop-blur hover:bg-white p-2 rounded-full shadow-lg transition-all ${
+            className={`absolute bottom-4 right-4 z-50 backdrop-blur hover:bg-white p-3 rounded-full shadow-lg transition-all ${
               timeOfDay === 'night' ? 'bg-white/30 text-white' : 'bg-white/50 text-deep-slate'
             }`}
           >
-            <X size={20} />
+            <X size={24} />
           </button>
       )}
 
