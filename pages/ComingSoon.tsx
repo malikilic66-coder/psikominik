@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
 import HappinessCollector from '../components/Game/HappinessCollector';
 import EmotionMatch from '../components/Game/EmotionMatch';
-import { Instagram, Mail, Gamepad2, Heart, Brain } from 'lucide-react';
+import BalloonPop from '../components/Game/BalloonPop';
+import { Instagram, Mail, Gamepad2, Heart, Brain, Wind } from 'lucide-react';
 import { SERVICES } from '../constants';
 
-type GameType = 'happiness' | 'emotion';
+type GameType = 'happiness' | 'emotion' | 'balloon';
 
 const GAMES = [
   { id: 'happiness' as GameType, name: 'Mutluluk Toplayıcısı', emoji: '☁️', icon: Heart, color: 'from-psiko-teal to-sage-green' },
   { id: 'emotion' as GameType, name: 'Duygu Eşleştirme', emoji: '🧩', icon: Brain, color: 'from-purple-500 to-pink-500' },
+  { id: 'balloon' as GameType, name: 'Balon Patlatma', emoji: '🎈', icon: Wind, color: 'from-sky-400 to-blue-500' },
 ];
 
 const ComingSoon: React.FC = () => {
@@ -94,6 +96,11 @@ const ComingSoon: React.FC = () => {
                 {/* Active Game */}
                 {activeGame === 'happiness' && <HappinessCollector />}
                 {activeGame === 'emotion' && <EmotionMatch />}
+                {activeGame === 'balloon' && (
+                  <div className="bg-white/80 rounded-[2rem] overflow-hidden shadow-xl border-4 border-white h-[500px]">
+                    <BalloonPop onBack={() => setActiveGame('happiness')} />
+                  </div>
+                )}
             </div>
         </main>
 
