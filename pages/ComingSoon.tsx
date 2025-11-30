@@ -2,15 +2,23 @@ import React, { useState } from 'react';
 import HappinessCollector from '../components/Game/HappinessCollector';
 import EmotionMatch from '../components/Game/EmotionMatch';
 import BalloonPop from '../components/Game/BalloonPop';
-import { Instagram, Mail, Gamepad2, Heart, Brain, Wind } from 'lucide-react';
+import ColorEmotion from '../components/Game/ColorEmotion';
+import AnimalFriends from '../components/Game/AnimalFriends';
+import HappinessGarden from '../components/Game/HappinessGarden';
+import RhythmBreath from '../components/Game/RhythmBreath';
+import { Instagram, Mail, Gamepad2, Heart, Brain, Wind, Palette, PawPrint, Flower2, Sparkles } from 'lucide-react';
 import { SERVICES } from '../constants';
 
-type GameType = 'happiness' | 'emotion' | 'balloon';
+type GameType = 'happiness' | 'emotion' | 'balloon' | 'color' | 'animal' | 'garden' | 'breath';
 
 const GAMES = [
   { id: 'happiness' as GameType, name: 'Mutluluk Toplayıcısı', emoji: '☁️', icon: Heart, color: 'from-psiko-teal to-sage-green' },
   { id: 'emotion' as GameType, name: 'Duygu Eşleştirme', emoji: '🧩', icon: Brain, color: 'from-purple-500 to-pink-500' },
   { id: 'balloon' as GameType, name: 'Balon Patlatma', emoji: '🎈', icon: Wind, color: 'from-sky-400 to-blue-500' },
+  { id: 'color' as GameType, name: 'Renk ve Duygu', emoji: '🎨', icon: Palette, color: 'from-orange-400 to-pink-500' },
+  { id: 'animal' as GameType, name: 'Hayvan Dostları', emoji: '🐾', icon: PawPrint, color: 'from-green-400 to-emerald-500' },
+  { id: 'garden' as GameType, name: 'Mutluluk Bahçesi', emoji: '🌸', icon: Flower2, color: 'from-pink-400 to-rose-500' },
+  { id: 'breath' as GameType, name: 'Ritim ve Nefes', emoji: '🧘', icon: Sparkles, color: 'from-indigo-400 to-purple-500' },
 ];
 
 const ComingSoon: React.FC = () => {
@@ -101,6 +109,10 @@ const ComingSoon: React.FC = () => {
                     <BalloonPop onBack={() => setActiveGame('happiness')} />
                   </div>
                 )}
+                {activeGame === 'color' && <ColorEmotion />}
+                {activeGame === 'animal' && <AnimalFriends />}
+                {activeGame === 'garden' && <HappinessGarden />}
+                {activeGame === 'breath' && <RhythmBreath />}
             </div>
         </main>
 
