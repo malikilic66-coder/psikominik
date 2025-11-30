@@ -1,9 +1,18 @@
-import React from 'react';
+import React, { useState } from 'react';
 import HappinessCollector from '../components/Game/HappinessCollector';
-import { Instagram, Mail } from 'lucide-react';
+import EmotionMatch from '../components/Game/EmotionMatch';
+import { Instagram, Mail, Gamepad2, Heart, Brain } from 'lucide-react';
 import { SERVICES } from '../constants';
 
+type GameType = 'happiness' | 'emotion';
+
+const GAMES = [
+  { id: 'happiness' as GameType, name: 'Mutluluk Toplayıcısı', emoji: '☁️', icon: Heart, color: 'from-psiko-teal to-sage-green' },
+  { id: 'emotion' as GameType, name: 'Duygu Eşleştirme', emoji: '🧩', icon: Brain, color: 'from-purple-500 to-pink-500' },
+];
+
 const ComingSoon: React.FC = () => {
+  const [activeGame, setActiveGame] = useState<GameType>('happiness');
   return (
     <div className="min-h-screen bg-[#FFF8E8] overflow-hidden relative font-body selection:bg-psiko-teal selection:text-white">
       
@@ -63,7 +72,28 @@ const ComingSoon: React.FC = () => {
             {/* Right Content - Game */}
             <div className="relative mt-4 lg:mt-0 order-1 lg:order-2">
                 <div className="absolute -inset-4 bg-gradient-to-tr from-psiko-teal/20 to-soft-coral/20 rounded-[3rem] blur-2xl -z-10" />
-                <HappinessCollector />
+                
+                {/* Game Selector */}
+                <div className="flex gap-2 mb-4 justify-center">
+                  {GAMES.map(game => (
+                    <button
+                      key={game.id}
+                      onClick={() => setActiveGame(game.id)}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-full font-bold text-sm transition-all ${
+                        activeGame === game.id
+                          ? `bg-gradient-to-r ${game.color} text-white shadow-lg scale-105`
+                          : 'bg-white/60 text-deep-slate hover:bg-white/80 hover:scale-102'
+                      }`}
+                    >
+                      <span>{game.emoji}</span>
+                      <span className="hidden sm:inline">{game.name}</span>
+                    </button>
+                  ))}
+                </div>
+                
+                {/* Active Game */}
+                {activeGame === 'happiness' && <HappinessCollector />}
+                {activeGame === 'emotion' && <EmotionMatch />}
             </div>
         </main>
 
