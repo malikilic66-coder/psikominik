@@ -1,14 +1,18 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { X, ArrowLeft, Heart, Brain, Wind, Palette, PawPrint, Flower2, Sparkles, Play, Volume2, VolumeX, Star, Trophy, Info, Crown, Zap, Search, Clock, Award, Target, Flame, Medal, Gift } from 'lucide-react';
+import { X, ArrowLeft, Heart, Brain, Wind, Palette, PawPrint, Flower2, Sparkles, Play, Volume2, VolumeX, Star, Trophy, Info, Crown, Zap, Search, Clock, Award, Target, Flame, Medal, Gift, Shapes, Music, Puzzle, Grid3X3 } from 'lucide-react';
 import EmotionMatch from '../components/Game/EmotionMatch';
 import BalloonPop from '../components/Game/BalloonPop';
 import ColorEmotion from '../components/Game/ColorEmotion';
 import AnimalFriends from '../components/Game/AnimalFriends';
 import HappinessGarden from '../components/Game/HappinessGarden';
 import RhythmBreath from '../components/Game/RhythmBreath';
+import ShapeAdventure from '../components/Game/ShapeAdventure';
+import MemoryMatch from '../components/Game/MemoryMatch';
+import LittleMusician from '../components/Game/LittleMusician';
+import PuzzleGarden from '../components/Game/PuzzleGarden';
 
 // Oyun tipleri
-type GameId = 'emotion' | 'balloon' | 'color' | 'animal' | 'garden' | 'breath';
+type GameId = 'emotion' | 'balloon' | 'color' | 'animal' | 'garden' | 'breath' | 'shapes' | 'memory' | 'music' | 'puzzle';
 
 interface GameInfo {
   id: GameId;
@@ -88,6 +92,51 @@ const GAMES: GameInfo[] = [
     ageRange: '3-6',
     difficulty: 2,
     category: 'relaxation',
+  },
+  // Yeni oyunlar
+  {
+    id: 'shapes',
+    name: 'Şekil Macerası',
+    icon: Shapes,
+    color: '#06B6D4',
+    bgGradient: 'from-cyan-400 via-teal-400 to-emerald-500',
+    description: 'Şekilleri tanı ve yerleştir!',
+    ageRange: '2-5',
+    difficulty: 1,
+    category: 'fun',
+  },
+  {
+    id: 'memory',
+    name: 'Hafıza Ustası',
+    icon: Grid3X3,
+    color: '#F472B6',
+    bgGradient: 'from-pink-400 via-fuchsia-400 to-purple-500',
+    description: 'Kartları eşleştir, hafızanı test et!',
+    ageRange: '3-6',
+    difficulty: 2,
+    category: 'fun',
+  },
+  {
+    id: 'music',
+    name: 'Küçük Müzisyen',
+    icon: Music,
+    color: '#8B5CF6',
+    bgGradient: 'from-violet-400 via-indigo-400 to-blue-500',
+    description: 'Müzik yap, ritim tut!',
+    ageRange: '2-6',
+    difficulty: 1,
+    category: 'creativity',
+  },
+  {
+    id: 'puzzle',
+    name: 'Yapboz Bahçesi',
+    icon: Puzzle,
+    color: '#10B981',
+    bgGradient: 'from-emerald-400 via-green-400 to-teal-500',
+    description: 'Parçaları birleştir, resmi tamamla!',
+    ageRange: '3-6',
+    difficulty: 2,
+    category: 'fun',
   },
 ];
 
@@ -956,6 +1005,35 @@ const FullScreenGame: React.FC<{
           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-indigo-100 to-purple-100 p-4">
             <div className="w-full max-w-2xl h-full max-h-[90vh]">
               <RhythmBreath />
+            </div>
+          </div>
+        )}
+        {/* Yeni oyunlar */}
+        {gameId === 'shapes' && (
+          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-cyan-100 to-teal-100 p-4">
+            <div className="w-full max-w-2xl h-full max-h-[90vh]">
+              <ShapeAdventure />
+            </div>
+          </div>
+        )}
+        {gameId === 'memory' && (
+          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-pink-100 to-purple-100 p-4">
+            <div className="w-full max-w-2xl h-full max-h-[90vh]">
+              <MemoryMatch />
+            </div>
+          </div>
+        )}
+        {gameId === 'music' && (
+          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-violet-100 to-indigo-100 p-4">
+            <div className="w-full max-w-3xl h-full max-h-[90vh]">
+              <LittleMusician />
+            </div>
+          </div>
+        )}
+        {gameId === 'puzzle' && (
+          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-emerald-100 to-green-100 p-4">
+            <div className="w-full max-w-3xl h-full max-h-[90vh]">
+              <PuzzleGarden />
             </div>
           </div>
         )}
