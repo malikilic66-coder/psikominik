@@ -28,13 +28,19 @@ const Hero: React.FC = () => {
               0-6 yaş grubu çocuklar için güvenli, geliştirici ve psikolojik temellere dayalı bir oyun ortamı. Potansiyellerini keşfetmeleri için buradayız.
             </p>
             
-            <div className="flex flex-col sm:flex-row items-center gap-4 justify-center md:justify-start">
+            <div className="flex flex-col sm:flex-row items-center gap-4 justify-center md:justify-start flex-wrap">
               <NavLink 
                 to="/contact" 
                 className="bg-psiko-teal text-white font-heading text-lg px-8 py-4 rounded-2xl shadow-lg shadow-psiko-teal/30 hover:shadow-xl hover:-translate-y-1 transition-all flex items-center gap-2 w-full sm:w-auto justify-center"
               >
                 Tanışma Randevusu Al
                 <ArrowRight size={20} />
+              </NavLink>
+              <NavLink 
+                to="/games" 
+                className="bg-gradient-to-r from-purple-500 to-pink-500 text-white font-heading text-lg px-8 py-4 rounded-2xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all flex items-center gap-2 w-full sm:w-auto justify-center"
+              >
+                🎮 Oyunları Oyna
               </NavLink>
               <NavLink 
                 to="/services" 

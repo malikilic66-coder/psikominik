@@ -361,7 +361,15 @@ const Confetti: React.FC<{ active: boolean }> = ({ active }) => {
 };
 
 // Ana oyun bileşeni
-const ShapeAdventure: React.FC = () => {
+interface ShapeAdventureProps {
+  soundEnabled?: boolean;
+  onToggleSound?: () => void;
+}
+
+const ShapeAdventure: React.FC<ShapeAdventureProps> = ({ 
+  soundEnabled = true, 
+  onToggleSound 
+}) => {
   const [level, setLevel] = useState(0);
   const [score, setScore] = useState(0);
   const [shapes, setShapes] = useState<DraggableShape[]>([]);
@@ -370,9 +378,14 @@ const ShapeAdventure: React.FC = () => {
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [showCelebration, setShowCelebration] = useState(false);
   const [completedLevels, setCompletedLevels] = useState<number[]>([]);
-  const [soundEnabled, setSoundEnabled] = useState(true);
+  // Local state removed in favor of props
   const [currentMessage, setCurrentMessage] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Internal toggle if prop is not provided (fallback)
+  const [internalSound, setInternalSound] = useState(true);
+  const isSoundEnabled = onToggleSound ? soundEnabled : internalSound;
+  const handleToggleSound = onToggleSound || (() => setInternalSound(prev => !prev));
 
   // Seviye başlat
   const initLevel = useCallback((levelIndex: number) => {
@@ -467,7 +480,7 @@ const ShapeAdventure: React.FC = () => {
         osc1.stop(audioContext.currentTime + 0.6);
         break;
     }
-  }, [soundEnabled]);
+  }, [isSoundEnabled]);
 
   // Sürükleme başlat
   const handleDragStart = (id: string, clientX: number, clientY: number) => {
@@ -621,10 +634,10 @@ const ShapeAdventure: React.FC = () => {
 
           {/* Ses butonu */}
           <button
-            onClick={() => setSoundEnabled(!soundEnabled)}
+            onClick={handleToggleSound}
             className="p-2 rounded-full hover:bg-gray-100 transition-colors"
           >
-            {soundEnabled ? (
+            {isSoundEnabled ? (
               <Volume2 size={20} className="text-gray-600" />
             ) : (
               <VolumeX size={20} className="text-gray-400" />

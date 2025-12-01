@@ -313,7 +313,15 @@ const WinConfetti: React.FC<{ active: boolean }> = ({ active }) => {
 };
 
 // Ana oyun bileşeni
-const MemoryMatch: React.FC = () => {
+interface MemoryMatchProps {
+  soundEnabled?: boolean;
+  onToggleSound?: () => void;
+}
+
+const MemoryMatch: React.FC<MemoryMatchProps> = ({
+  soundEnabled = true,
+  onToggleSound
+}) => {
   const [difficulty, setDifficulty] = useState(0);
   const [cards, setCards] = useState<Card[]>([]);
   const [flippedCards, setFlippedCards] = useState<number[]>([]);
@@ -321,11 +329,16 @@ const MemoryMatch: React.FC = () => {
   const [moves, setMoves] = useState(0);
   const [score, setScore] = useState(0);
   const [gameWon, setGameWon] = useState(false);
-  const [soundEnabled, setSoundEnabled] = useState(true);
+  // Local state removed
   const [timer, setTimer] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [showDifficultySelect, setShowDifficultySelect] = useState(true);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Internal toggle fallback
+  const [internalSound, setInternalSound] = useState(true);
+  const isSoundEnabled = onToggleSound ? soundEnabled : internalSound;
+  const handleToggleSound = onToggleSound || (() => setInternalSound(prev => !prev));
 
   // Oyunu başlat
   const initGame = useCallback((diffIndex: number) => {
@@ -419,7 +432,7 @@ const MemoryMatch: React.FC = () => {
         });
         return;
     }
-  }, [soundEnabled]);
+  }, [isSoundEnabled]);
 
   // Kart tıklama
   const handleCardClick = (cardId: number) => {
@@ -564,10 +577,10 @@ const MemoryMatch: React.FC = () => {
 
           {/* Ses */}
           <button
-            onClick={() => setSoundEnabled(!soundEnabled)}
+            onClick={handleToggleSound}
             className="p-2 rounded-full hover:bg-gray-100 transition-colors"
           >
-            {soundEnabled ? (
+            {isSoundEnabled ? (
               <Volume2 size={20} className="text-gray-600" />
             ) : (
               <VolumeX size={20} className="text-gray-400" />

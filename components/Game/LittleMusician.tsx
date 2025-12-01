@@ -280,15 +280,28 @@ function adjustColor(color: string, amount: number): string {
 }
 
 // Ana bileşen
-const LittleMusician: React.FC = () => {
+interface LittleMusicianProps {
+  soundEnabled?: boolean;
+  onToggleSound?: () => void;
+}
+
+const LittleMusician: React.FC<LittleMusicianProps> = ({
+  soundEnabled = true,
+  onToggleSound
+}) => {
   const [instrument, setInstrument] = useState<InstrumentType>('piano');
   const [pressedKeys, setPressedKeys] = useState<Set<number>>(new Set());
-  const [soundEnabled, setSoundEnabled] = useState(true);
+  // Local state removed
   const [recording, setRecording] = useState<RecordedNote[]>([]);
   const [isRecording, setIsRecording] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [recordStartTime, setRecordStartTime] = useState<number | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
+
+  // Internal toggle fallback
+  const [internalSound, setInternalSound] = useState(true);
+  const isSoundEnabled = onToggleSound ? soundEnabled : internalSound;
+  const handleToggleSound = onToggleSound || (() => setInternalSound(prev => !prev));
 
   // Audio context oluştur
   useEffect(() => {
@@ -333,11 +346,11 @@ const LittleMusician: React.FC = () => {
 
     oscillator.start();
     oscillator.stop(ctx.currentTime + (type === 'xylophone' ? 1.5 : 1));
-  }, [soundEnabled]);
+  }, [isSoundEnabled]);
 
   // Davul sesi çal
   const playDrum = useCallback((type: DrumSound['type']) => {
-    if (!soundEnabled || !audioContextRef.current) return;
+    if (!isSoundEnabled || !audioContextRef.current) return;
 
     const ctx = audioContextRef.current;
 
@@ -560,10 +573,10 @@ const LittleMusician: React.FC = () => {
 
           {/* Ses */}
           <button
-            onClick={() => setSoundEnabled(!soundEnabled)}
+            onClick={handleToggleSound}
             className="p-2 rounded-full hover:bg-gray-100 transition-colors"
           >
-            {soundEnabled ? (
+            {isSoundEnabled ? (
               <Volume2 size={20} className="text-gray-600" />
             ) : (
               <VolumeX size={20} className="text-gray-400" />

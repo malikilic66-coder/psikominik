@@ -351,7 +351,12 @@ function adjustColor(color: string, amount: number): string {
 }
 
 // Ana bileşen
-const PuzzleGarden: React.FC = () => {
+interface PuzzleGardenProps {
+  soundEnabled?: boolean;
+  onToggleSound?: () => void;
+}
+
+const PuzzleGarden: React.FC<PuzzleGardenProps> = ({ soundEnabled = true, onToggleSound }) => {
   const [difficulty, setDifficulty] = useState(0);
   const [currentImage, setCurrentImage] = useState<PuzzleImage | null>(null);
   const [pieces, setPieces] = useState<PuzzlePiece[]>([]);
@@ -359,9 +364,13 @@ const PuzzleGarden: React.FC = () => {
   const [placedPieces, setPlacedPieces] = useState<Map<string, PuzzlePiece>>(new Map());
   const [moves, setMoves] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
-  const [soundEnabled, setSoundEnabled] = useState(true);
   const [showImageSelect, setShowImageSelect] = useState(true);
   const [category, setCategory] = useState<'animal' | 'fruit' | 'vehicle'>('animal');
+
+  // Internal toggle fallback
+  const [internalSound, setInternalSound] = useState(true);
+  const isSoundEnabled = onToggleSound ? soundEnabled : internalSound;
+  const handleToggleSound = onToggleSound || (() => setInternalSound(prev => !prev));
 
   // Oyunu başlat
   const startGame = useCallback((image: PuzzleImage) => {
@@ -397,7 +406,7 @@ const PuzzleGarden: React.FC = () => {
 
   // Ses çal
   const playSound = useCallback((type: 'select' | 'place' | 'wrong' | 'complete') => {
-    if (!soundEnabled) return;
+    if (!isSoundEnabled) return;
     
     const ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
     const osc = ctx.createOscillator();
@@ -446,7 +455,7 @@ const PuzzleGarden: React.FC = () => {
         });
         return;
     }
-  }, [soundEnabled]);
+  }, [isSoundEnabled]);
 
   // Parça seç
   const handleSelectPiece = (pieceId: number) => {
@@ -598,10 +607,10 @@ const PuzzleGarden: React.FC = () => {
 
           {/* Ses */}
           <button
-            onClick={() => setSoundEnabled(!soundEnabled)}
+            onClick={handleToggleSound}
             className="p-2 rounded-full hover:bg-gray-100 transition-colors"
           >
-            {soundEnabled ? (
+            {isSoundEnabled ? (
               <Volume2 size={20} className="text-gray-600" />
             ) : (
               <VolumeX size={20} className="text-gray-400" />

@@ -24,6 +24,7 @@ interface GameInfo {
   ageRange: string;
   difficulty: 1 | 2 | 3;
   category: 'emotion' | 'fun' | 'relaxation' | 'creativity';
+  isNew?: boolean;
 }
 
 const GAMES: GameInfo[] = [
@@ -104,6 +105,7 @@ const GAMES: GameInfo[] = [
     ageRange: '2-5',
     difficulty: 1,
     category: 'fun',
+    isNew: true,
   },
   {
     id: 'memory',
@@ -115,6 +117,7 @@ const GAMES: GameInfo[] = [
     ageRange: '3-6',
     difficulty: 2,
     category: 'fun',
+    isNew: true,
   },
   {
     id: 'music',
@@ -126,6 +129,7 @@ const GAMES: GameInfo[] = [
     ageRange: '2-6',
     difficulty: 1,
     category: 'creativity',
+    isNew: true,
   },
   {
     id: 'puzzle',
@@ -137,6 +141,7 @@ const GAMES: GameInfo[] = [
     ageRange: '3-6',
     difficulty: 2,
     category: 'fun',
+    isNew: true,
   },
 ];
 
@@ -913,6 +918,13 @@ const GameCard: React.FC<{
         <span>{CATEGORY_INFO[game.category].emoji}</span>
       </div>
 
+      {/* Yeni etiketi */}
+      {game.isNew && (
+        <div className="absolute top-12 right-3 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-md animate-pulse">
+          YENİ
+        </div>
+      )}
+
       {/* Yaş aralığı */}
       <div className="absolute top-3 left-3 bg-white/30 backdrop-blur-sm rounded-full px-2 py-1 text-xs text-white font-bold">
         {game.ageRange} 👶
@@ -955,7 +967,9 @@ const GameCard: React.FC<{
 const FullScreenGame: React.FC<{
   gameId: GameId | null;
   onClose: () => void;
-}> = ({ gameId, onClose }) => {
+  soundEnabled: boolean;
+  toggleSound: () => void;
+}> = ({ gameId, onClose, soundEnabled, toggleSound }) => {
   if (!gameId) return null;
 
   const game = GAMES.find((g) => g.id === gameId);
@@ -1012,28 +1026,28 @@ const FullScreenGame: React.FC<{
         {gameId === 'shapes' && (
           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-cyan-100 to-teal-100 p-4">
             <div className="w-full max-w-2xl h-full max-h-[90vh]">
-              <ShapeAdventure />
+              <ShapeAdventure soundEnabled={soundEnabled} onToggleSound={toggleSound} />
             </div>
           </div>
         )}
         {gameId === 'memory' && (
           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-pink-100 to-purple-100 p-4">
             <div className="w-full max-w-2xl h-full max-h-[90vh]">
-              <MemoryMatch />
+              <MemoryMatch soundEnabled={soundEnabled} onToggleSound={toggleSound} />
             </div>
           </div>
         )}
         {gameId === 'music' && (
           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-violet-100 to-indigo-100 p-4">
             <div className="w-full max-w-3xl h-full max-h-[90vh]">
-              <LittleMusician />
+              <LittleMusician soundEnabled={soundEnabled} onToggleSound={toggleSound} />
             </div>
           </div>
         )}
         {gameId === 'puzzle' && (
           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-emerald-100 to-green-100 p-4">
             <div className="w-full max-w-3xl h-full max-h-[90vh]">
-              <PuzzleGarden />
+              <PuzzleGarden soundEnabled={soundEnabled} onToggleSound={toggleSound} />
             </div>
           </div>
         )}
@@ -1153,7 +1167,12 @@ const Games: React.FC = () => {
       <FloatingMascot />
 
       {/* Tam ekran oyun */}
-      <FullScreenGame gameId={activeGame} onClose={endGame} />
+      <FullScreenGame 
+        gameId={activeGame} 
+        onClose={endGame} 
+        soundEnabled={soundEnabled}
+        toggleSound={toggleSound}
+      />
 
       {/* Ebeveyn Bilgi Modalı */}
       <ParentInfoModal isOpen={showParentInfo} onClose={() => setShowParentInfo(false)} />

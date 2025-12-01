@@ -2,7 +2,8 @@ import React from 'react';
 import Hero from '../components/Home/Hero';
 import Features from '../components/Home/Features';
 import { TESTIMONIALS } from '../constants';
-import { Quote, CheckCircle2 } from 'lucide-react';
+import { Quote, CheckCircle2, Shapes, Grid3X3, Music, Puzzle, ArrowRight } from 'lucide-react';
+import { NavLink } from 'react-router-dom';
 
 // Development Chart Component using Recharts
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -42,6 +43,78 @@ const Home: React.FC = () => {
     <div className="animate-fade-in">
       <Hero />
       <Features />
+
+      {/* Featured Games Section */}
+      <section className="py-20 bg-gradient-to-b from-white to-purple-50">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <span className="text-purple-600 font-bold tracking-wider text-sm uppercase mb-2 block">Dijital Gelişim</span>
+            <h2 className="font-heading text-3xl md:text-4xl text-deep-slate mb-4">
+              Eğitici Oyunlarımızı Keşfedin
+            </h2>
+            <p className="text-gray-600 max-w-2xl mx-auto">
+              Çocuklarınızın bilişsel, motor ve sanatsal becerilerini geliştiren, pedagog onaylı dijital oyunlarımızla tanışın.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[
+              {
+                icon: Shapes,
+                title: 'Şekil Macerası',
+                desc: 'Geometrik şekilleri ve renkleri eğlenerek öğrenin.',
+                color: 'bg-cyan-100 text-cyan-600',
+                id: 'shapes'
+              },
+              {
+                icon: Grid3X3,
+                title: 'Hafıza Ustası',
+                desc: 'Görsel hafızayı güçlendiren eşleştirme oyunu.',
+                color: 'bg-pink-100 text-pink-600',
+                id: 'memory'
+              },
+              {
+                icon: Music,
+                title: 'Küçük Müzisyen',
+                desc: 'Ritim duygusunu geliştiren müzik aletleri.',
+                color: 'bg-violet-100 text-violet-600',
+                id: 'music'
+              },
+              {
+                icon: Puzzle,
+                title: 'Yapboz Bahçesi',
+                desc: 'Problem çözme becerilerini geliştiren yapbozlar.',
+                color: 'bg-emerald-100 text-emerald-600',
+                id: 'puzzle'
+              }
+            ].map((game, i) => (
+              <NavLink 
+                key={i}
+                to="/games"
+                className="bg-white p-6 rounded-3xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all group border border-gray-100"
+              >
+                <div className={`w-14 h-14 ${game.color} rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
+                  <game.icon size={28} />
+                </div>
+                <h3 className="font-heading text-xl text-deep-slate mb-2">{game.title}</h3>
+                <p className="text-gray-500 text-sm mb-4">{game.desc}</p>
+                <div className="flex items-center text-psiko-teal font-bold text-sm group-hover:gap-2 transition-all">
+                  Hemen Oyna <ArrowRight size={16} className="ml-1" />
+                </div>
+              </NavLink>
+            ))}
+          </div>
+          
+          <div className="text-center mt-12">
+             <NavLink 
+               to="/games" 
+               className="inline-flex items-center gap-2 bg-purple-600 text-white font-bold px-8 py-3 rounded-full hover:bg-purple-700 transition-colors shadow-lg shadow-purple-200"
+             >
+               Tüm Oyunları Gör <ArrowRight size={20} />
+             </NavLink>
+          </div>
+        </div>
+      </section>
 
       {/* Why Us / Methodology Section */}
       <section className="py-20 bg-warm-cream">
