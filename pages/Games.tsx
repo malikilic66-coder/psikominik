@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { X, ArrowLeft, Heart, Brain, Wind, Palette, PawPrint, Flower2, Sparkles, Play, Volume2, VolumeX, Star, Trophy, Info, Crown, Zap } from 'lucide-react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { X, ArrowLeft, Heart, Brain, Wind, Palette, PawPrint, Flower2, Sparkles, Play, Volume2, VolumeX, Star, Trophy, Info, Crown, Zap, Search, Clock, Award, Target, Flame, Medal, Gift } from 'lucide-react';
 import EmotionMatch from '../components/Game/EmotionMatch';
 import BalloonPop from '../components/Game/BalloonPop';
 import ColorEmotion from '../components/Game/ColorEmotion';
@@ -130,6 +130,278 @@ const getDailyGame = (): GameId => {
   const dayOfYear = Math.floor((today.getTime() - new Date(today.getFullYear(), 0, 0).getTime()) / 86400000);
   const gameIndex = dayOfYear % GAMES.length;
   return GAMES[gameIndex].id;
+};
+
+// Son oynanan oyunları al
+const getRecentGames = (): { gameId: GameId; timestamp: number }[] => {
+  try {
+    const saved = localStorage.getItem('psikominik_recent_games');
+    return saved ? JSON.parse(saved) : [];
+  } catch {
+    return [];
+  }
+};
+
+// Son oynanan oyunu kaydet
+const saveRecentGame = (gameId: GameId) => {
+  try {
+    const recent = getRecentGames();
+    const filtered = recent.filter(r => r.gameId !== gameId);
+    const updated = [{ gameId, timestamp: Date.now() }, ...filtered].slice(0, 5);
+    localStorage.setItem('psikominik_recent_games', JSON.stringify(updated));
+  } catch {
+    // localStorage hatası
+  }
+};
+
+// Oyun istatistiklerini al
+const getGameStats = (): { totalPlayTime: number; gamesPlayed: number; todayPlayTime: number } => {
+  try {
+    const saved = localStorage.getItem('psikominik_stats');
+    return saved ? JSON.parse(saved) : { totalPlayTime: 0, gamesPlayed: 0, todayPlayTime: 0 };
+  } catch {
+    return { totalPlayTime: 0, gamesPlayed: 0, todayPlayTime: 0 };
+  }
+};
+
+// Oyun istatistiklerini güncelle
+const updateGameStats = (playTime: number) => {
+  try {
+    const stats = getGameStats();
+    const today = new Date().toDateString();
+    const savedDate = localStorage.getItem('psikominik_stats_date');
+    
+    const todayPlayTime = savedDate === today ? stats.todayPlayTime + playTime : playTime;
+    
+    const updated = {
+      totalPlayTime: stats.totalPlayTime + playTime,
+      gamesPlayed: stats.gamesPlayed + 1,
+      todayPlayTime
+    };
+    
+    localStorage.setItem('psikominik_stats', JSON.stringify(updated));
+    localStorage.setItem('psikominik_stats_date', today);
+  } catch {
+    // localStorage hatası
+  }
+};
+
+// Başarımları al
+interface Achievement {
+  id: string;
+  name: string;
+  description: string;
+  icon: React.ElementType;
+  color: string;
+  unlocked: boolean;
+  unlockedAt?: number;
+}
+
+const getAchievements = (): Achievement[] => {
+  try {
+    const saved = localStorage.getItem('psikominik_achievements');
+    const unlocked: Record<string, number> = saved ? JSON.parse(saved) : {};
+    
+    return [
+      {
+        id: 'first_game',
+        name: 'İlk Adım',
+        description: 'İlk oyununu oynadın!',
+        icon: Star,
+        color: '#FFD700',
+        unlocked: !!unlocked['first_game'],
+        unlockedAt: unlocked['first_game']
+      },
+      {
+        id: 'five_games',
+        name: 'Kaşif',
+        description: '5 farklı oyun oynadın!',
+        icon: Target,
+        color: '#22C55E',
+        unlocked: !!unlocked['five_games'],
+        unlockedAt: unlocked['five_games']
+      },
+      {
+        id: 'all_games',
+        name: 'Usta Oyuncu',
+        description: 'Tüm oyunları denedin!',
+        icon: Crown,
+        color: '#9333EA',
+        unlocked: !!unlocked['all_games'],
+        unlockedAt: unlocked['all_games']
+      },
+      {
+        id: 'streak_3',
+        name: 'Düzenli Oyuncu',
+        description: '3 gün üst üste oynadın!',
+        icon: Flame,
+        color: '#F97316',
+        unlocked: !!unlocked['streak_3'],
+        unlockedAt: unlocked['streak_3']
+      },
+      {
+        id: 'high_scorer',
+        name: 'Rekor Kıran',
+        description: 'İlk yüksek skorunu aldın!',
+        icon: Trophy,
+        color: '#EAB308',
+        unlocked: !!unlocked['high_scorer'],
+        unlockedAt: unlocked['high_scorer']
+      },
+      {
+        id: 'five_favorites',
+        name: 'Koleksiyoncu',
+        description: '5 oyunu favorilere ekledin!',
+        icon: Heart,
+        color: '#EC4899',
+        unlocked: !!unlocked['five_favorites'],
+        unlockedAt: unlocked['five_favorites']
+      }
+    ];
+  } catch {
+    return [];
+  }
+};
+
+// Başarım kilidini aç
+const unlockAchievement = (achievementId: string): boolean => {
+  try {
+    const saved = localStorage.getItem('psikominik_achievements');
+    const unlocked: Record<string, number> = saved ? JSON.parse(saved) : {};
+    
+    if (!unlocked[achievementId]) {
+      unlocked[achievementId] = Date.now();
+      localStorage.setItem('psikominik_achievements', JSON.stringify(unlocked));
+      return true; // Yeni başarım açıldı
+    }
+    return false;
+  } catch {
+    return false;
+  }
+};
+
+// Başarımları kontrol et ve güncelle
+const checkAchievements = (
+  favorites: GameId[],
+  playedGames: Set<GameId>
+): string | null => {
+  // İlk oyun
+  if (playedGames.size === 1) {
+    if (unlockAchievement('first_game')) return 'first_game';
+  }
+  
+  // 5 farklı oyun
+  if (playedGames.size >= 5) {
+    if (unlockAchievement('five_games')) return 'five_games';
+  }
+  
+  // Tüm oyunlar
+  if (playedGames.size >= GAMES.length) {
+    if (unlockAchievement('all_games')) return 'all_games';
+  }
+  
+  // 5 favori
+  if (favorites.length >= 5) {
+    if (unlockAchievement('five_favorites')) return 'five_favorites';
+  }
+  
+  return null;
+};
+
+// Ses efektleri sistemi
+const useSoundEffects = () => {
+  const [soundEnabled, setSoundEnabled] = useState(() => {
+    try {
+      const saved = localStorage.getItem('psikominik_sound');
+      return saved !== 'false';
+    } catch {
+      return true;
+    }
+  });
+
+  const toggleSound = useCallback(() => {
+    setSoundEnabled(prev => {
+      const newValue = !prev;
+      localStorage.setItem('psikominik_sound', String(newValue));
+      return newValue;
+    });
+  }, []);
+
+  const playSound = useCallback((type: 'click' | 'success' | 'achievement' | 'start') => {
+    if (!soundEnabled) return;
+
+    const audioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+
+    switch (type) {
+      case 'click':
+        oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+        oscillator.frequency.exponentialRampToValueAtTime(600, audioContext.currentTime + 0.05);
+        gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.05);
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.05);
+        break;
+
+      case 'success':
+        oscillator.frequency.setValueAtTime(523, audioContext.currentTime);
+        oscillator.frequency.setValueAtTime(659, audioContext.currentTime + 0.1);
+        oscillator.frequency.setValueAtTime(784, audioContext.currentTime + 0.2);
+        gainNode.gain.setValueAtTime(0.15, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.3);
+        break;
+
+      case 'achievement':
+        // Başarım sesi - daha uzun ve neşeli
+        const osc1 = audioContext.createOscillator();
+        const osc2 = audioContext.createOscillator();
+        const gain1 = audioContext.createGain();
+        const gain2 = audioContext.createGain();
+
+        osc1.connect(gain1);
+        osc2.connect(gain2);
+        gain1.connect(audioContext.destination);
+        gain2.connect(audioContext.destination);
+
+        osc1.frequency.setValueAtTime(523, audioContext.currentTime);
+        osc1.frequency.setValueAtTime(659, audioContext.currentTime + 0.15);
+        osc1.frequency.setValueAtTime(784, audioContext.currentTime + 0.3);
+        osc1.frequency.setValueAtTime(1047, audioContext.currentTime + 0.45);
+
+        osc2.frequency.setValueAtTime(392, audioContext.currentTime);
+        osc2.frequency.setValueAtTime(494, audioContext.currentTime + 0.15);
+        osc2.frequency.setValueAtTime(588, audioContext.currentTime + 0.3);
+        osc2.frequency.setValueAtTime(784, audioContext.currentTime + 0.45);
+
+        gain1.gain.setValueAtTime(0.12, audioContext.currentTime);
+        gain2.gain.setValueAtTime(0.08, audioContext.currentTime);
+        gain1.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.6);
+        gain2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.6);
+
+        osc1.start(audioContext.currentTime);
+        osc2.start(audioContext.currentTime);
+        osc1.stop(audioContext.currentTime + 0.6);
+        osc2.stop(audioContext.currentTime + 0.6);
+        return; // Early return since we handle this differently
+
+      case 'start':
+        oscillator.frequency.setValueAtTime(440, audioContext.currentTime);
+        oscillator.frequency.exponentialRampToValueAtTime(880, audioContext.currentTime + 0.15);
+        gainNode.gain.setValueAtTime(0.12, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.2);
+        break;
+    }
+  }, [soundEnabled]);
+
+  return { soundEnabled, toggleSound, playSound };
 };
 
 // Zorluk yıldızları
@@ -404,7 +676,16 @@ const FavoriteButton: React.FC<{
 
 // Ebeveyn Bilgi Modalı
 const ParentInfoModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
+  const stats = getGameStats();
+  
   if (!isOpen) return null;
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    if (mins < 60) return `${mins} dakika`;
+    const hours = Math.floor(mins / 60);
+    return `${hours} saat ${mins % 60} dakika`;
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
@@ -423,6 +704,27 @@ const ParentInfoModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ i
           </div>
 
           <div className="space-y-6">
+            {/* İstatistikler */}
+            <div className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-2xl p-4">
+              <h3 className="font-bold text-blue-800 mb-3 flex items-center gap-2">
+                <Clock size={20} /> Oyun İstatistikleri
+              </h3>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="bg-white rounded-xl p-3 text-center shadow-sm">
+                  <div className="text-2xl font-bold text-blue-600">{stats.gamesPlayed}</div>
+                  <div className="text-xs text-gray-500">Toplam Oyun</div>
+                </div>
+                <div className="bg-white rounded-xl p-3 text-center shadow-sm">
+                  <div className="text-2xl font-bold text-green-600">{Math.floor(stats.todayPlayTime / 60)}</div>
+                  <div className="text-xs text-gray-500">Bugün (dk)</div>
+                </div>
+                <div className="bg-white rounded-xl p-3 text-center shadow-sm">
+                  <div className="text-2xl font-bold text-purple-600">{formatTime(stats.totalPlayTime)}</div>
+                  <div className="text-xs text-gray-500">Toplam Süre</div>
+                </div>
+              </div>
+            </div>
+
             <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl p-4">
               <h3 className="font-bold text-purple-800 mb-2 flex items-center gap-2">
                 <Brain size={20} /> Duygu Gelişimi
@@ -669,24 +971,95 @@ const Games: React.FC = () => {
   const [favorites, setFavorites] = useState<GameId[]>(getFavorites());
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [showParentInfo, setShowParentInfo] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [recentGames, setRecentGames] = useState(getRecentGames());
+  const [playedGames, setPlayedGames] = useState<Set<GameId>>(new Set());
+  const [showAchievements, setShowAchievements] = useState(false);
+  const [newAchievement, setNewAchievement] = useState<string | null>(null);
+  const [gameStartTime, setGameStartTime] = useState<number | null>(null);
+  
+  // Ses efektleri
+  const { soundEnabled, toggleSound, playSound } = useSoundEffects();
+
+  // Oyun başlatma
+  const startGame = useCallback((gameId: GameId) => {
+    playSound('start');
+    setActiveGame(gameId);
+    setGameStartTime(Date.now());
+    saveRecentGame(gameId);
+    setRecentGames(getRecentGames());
+    
+    // Oynanan oyunları takip et
+    setPlayedGames(prev => {
+      const newSet = new Set(prev);
+      newSet.add(gameId);
+      return newSet;
+    });
+    
+    // Başarımları kontrol et
+    const achievement = checkAchievements(favorites, new Set([...playedGames, gameId]));
+    if (achievement) {
+      setTimeout(() => {
+        playSound('achievement');
+        setNewAchievement(achievement);
+      }, 1000);
+    }
+  }, [favorites, playedGames, playSound]);
+
+  // Oyun bitirme
+  const endGame = useCallback(() => {
+    if (gameStartTime) {
+      const playTime = Math.floor((Date.now() - gameStartTime) / 1000);
+      updateGameStats(playTime);
+    }
+    setActiveGame(null);
+    setGameStartTime(null);
+  }, [gameStartTime]);
 
   // Favori toggle
   const toggleFavorite = useCallback((gameId: GameId) => {
+    playSound('click');
     setFavorites(prev => {
       const newFavorites = prev.includes(gameId)
         ? prev.filter(id => id !== gameId)
         : [...prev, gameId];
       saveFavorites(newFavorites);
+      
+      // Başarımları kontrol et
+      const achievement = checkAchievements(newFavorites, playedGames);
+      if (achievement) {
+        setTimeout(() => {
+          playSound('achievement');
+          setNewAchievement(achievement);
+        }, 500);
+      }
+      
       return newFavorites;
     });
-  }, []);
+  }, [playedGames, playSound]);
 
-  // Filtrelenmiş oyunlar
-  const filteredGames = GAMES.filter((g) => {
-    if (showFavoritesOnly && !favorites.includes(g.id)) return false;
-    if (selectedCategory && g.category !== selectedCategory) return false;
-    return true;
-  });
+  // Arama ile filtrelenmiş oyunlar
+  const filteredGames = useMemo(() => {
+    return GAMES.filter((g) => {
+      if (showFavoritesOnly && !favorites.includes(g.id)) return false;
+      if (selectedCategory && g.category !== selectedCategory) return false;
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        return g.name.toLowerCase().includes(query) || 
+               g.description.toLowerCase().includes(query) ||
+               CATEGORY_INFO[g.category].name.toLowerCase().includes(query);
+      }
+      return true;
+    });
+  }, [showFavoritesOnly, favorites, selectedCategory, searchQuery]);
+
+  // Son oynanan oyunların detayları
+  const recentGameDetails = useMemo(() => {
+    return recentGames
+      .map(r => GAMES.find(g => g.id === r.gameId))
+      .filter((g): g is GameInfo => g !== undefined)
+      .slice(0, 4);
+  }, [recentGames]);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#FFF8E8] via-[#FFF5E1] to-[#FFE4C4] relative overflow-x-hidden">
@@ -702,10 +1075,95 @@ const Games: React.FC = () => {
       <FloatingMascot />
 
       {/* Tam ekran oyun */}
-      <FullScreenGame gameId={activeGame} onClose={() => setActiveGame(null)} />
+      <FullScreenGame gameId={activeGame} onClose={endGame} />
 
       {/* Ebeveyn Bilgi Modalı */}
       <ParentInfoModal isOpen={showParentInfo} onClose={() => setShowParentInfo(false)} />
+
+      {/* Yeni Başarım Bildirimi */}
+      {newAchievement && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-white rounded-3xl p-8 max-w-sm mx-4 text-center shadow-2xl animate-in zoom-in duration-500">
+            <div className="text-6xl mb-4">🎉</div>
+            <div className="text-lg font-bold text-gray-500 mb-2">Yeni Başarım!</div>
+            {(() => {
+              const achievement = getAchievements().find(a => a.id === newAchievement);
+              if (!achievement) return null;
+              const IconComp = achievement.icon;
+              return (
+                <>
+                  <div 
+                    className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg"
+                    style={{ backgroundColor: achievement.color + '20' }}
+                  >
+                    <IconComp size={40} color={achievement.color} />
+                  </div>
+                  <h3 className="text-2xl font-bold text-gray-800 mb-2">{achievement.name}</h3>
+                  <p className="text-gray-500">{achievement.description}</p>
+                </>
+              );
+            })()}
+            <button
+              onClick={() => setNewAchievement(null)}
+              className="mt-6 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold py-3 px-8 rounded-full hover:scale-105 active:scale-95 transition-transform"
+            >
+              Harika! 🌟
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Başarımlar Modalı */}
+      {showAchievements && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
+                    <Trophy size={24} className="text-yellow-600" />
+                  </div>
+                  <h2 className="text-xl font-bold text-gray-800">Başarımlar</h2>
+                </div>
+                <button onClick={() => setShowAchievements(false)} className="p-2 hover:bg-gray-100 rounded-full">
+                  <X size={24} />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                {getAchievements().map((achievement) => {
+                  const IconComp = achievement.icon;
+                  return (
+                    <div
+                      key={achievement.id}
+                      className={`p-4 rounded-2xl text-center transition-all ${
+                        achievement.unlocked
+                          ? 'bg-gradient-to-br from-yellow-50 to-orange-50 shadow-md'
+                          : 'bg-gray-100 opacity-50 grayscale'
+                      }`}
+                    >
+                      <div
+                        className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-2"
+                        style={{ backgroundColor: achievement.unlocked ? achievement.color + '20' : '#E5E7EB' }}
+                      >
+                        <IconComp size={28} color={achievement.unlocked ? achievement.color : '#9CA3AF'} />
+                      </div>
+                      <h4 className="font-bold text-sm text-gray-800">{achievement.name}</h4>
+                      <p className="text-xs text-gray-500 mt-1">{achievement.description}</p>
+                      {achievement.unlocked && (
+                        <div className="text-xs text-green-600 mt-2 flex items-center justify-center gap-1">
+                          <Star size={12} fill="currentColor" />
+                          Kazanıldı!
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Header */}
       <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-white/50 shadow-sm">
@@ -733,19 +1191,114 @@ const Games: React.FC = () => {
             </div>
 
             {/* Ebeveyn köşesi butonu */}
-            <button
-              onClick={() => setShowParentInfo(true)}
-              className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center hover:bg-purple-200 transition-colors"
-              title="Ebeveyn Köşesi"
-            >
-              <Info size={20} className="text-purple-600" />
-            </button>
+            <div className="flex items-center gap-2">
+              {/* Ses butonu */}
+              <button
+                onClick={() => {
+                  playSound('click');
+                  toggleSound();
+                }}
+                className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
+                  soundEnabled 
+                    ? 'bg-green-100 hover:bg-green-200' 
+                    : 'bg-gray-100 hover:bg-gray-200'
+                }`}
+                title={soundEnabled ? 'Sesi Kapat' : 'Sesi Aç'}
+              >
+                {soundEnabled ? (
+                  <Volume2 size={20} className="text-green-600" />
+                ) : (
+                  <VolumeX size={20} className="text-gray-400" />
+                )}
+              </button>
+
+              {/* Başarımlar butonu */}
+              <button
+                onClick={() => {
+                  playSound('click');
+                  setShowAchievements(true);
+                }}
+                className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center hover:bg-yellow-200 transition-colors relative"
+                title="Başarımlar"
+              >
+                <Trophy size={20} className="text-yellow-600" />
+                {getAchievements().filter(a => a.unlocked).length > 0 && (
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-yellow-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                    {getAchievements().filter(a => a.unlocked).length}
+                  </span>
+                )}
+              </button>
+              
+              {/* Ebeveyn köşesi */}
+              <button
+                onClick={() => {
+                  playSound('click');
+                  setShowParentInfo(true);
+                }}
+                className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center hover:bg-purple-200 transition-colors"
+                title="Ebeveyn Köşesi"
+              >
+                <Info size={20} className="text-purple-600" />
+              </button>
+            </div>
           </div>
         </div>
       </header>
 
       {/* Günün oyunu banner */}
-      <DailyGameBanner onPlay={setActiveGame} />
+      <DailyGameBanner onPlay={startGame} />
+
+      {/* Arama kutusu */}
+      <div className="container mx-auto px-4 py-4">
+        <div className="relative max-w-md mx-auto">
+          <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Oyun ara... 🔍"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-12 pr-4 py-3 rounded-full bg-white/80 backdrop-blur-sm border-2 border-transparent focus:border-psiko-teal focus:outline-none shadow-md text-gray-700 placeholder-gray-400 transition-all"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            >
+              <X size={18} />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Son oynanan oyunlar */}
+      {recentGameDetails.length > 0 && !searchQuery && !selectedCategory && !showFavoritesOnly && (
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Clock size={18} className="text-gray-500" />
+            <h2 className="text-gray-600 font-bold">Son Oynananlar</h2>
+          </div>
+          <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
+            {recentGameDetails.map((game) => {
+              const IconComponent = game.icon;
+              return (
+                <button
+                  key={game.id}
+                  onClick={() => startGame(game.id)}
+                  className={`flex-shrink-0 bg-gradient-to-br ${game.bgGradient} rounded-2xl p-3 pr-5 flex items-center gap-3 shadow-lg hover:scale-105 active:scale-95 transition-all`}
+                >
+                  <div className="w-12 h-12 bg-white/90 rounded-xl flex items-center justify-center">
+                    <IconComponent size={24} color={game.color} />
+                  </div>
+                  <div className="text-left">
+                    <div className="text-white font-bold text-sm">{game.name}</div>
+                    <div className="text-white/70 text-xs">Devam et →</div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Kategori filtreleri */}
       <div className="container mx-auto px-4 py-4">
@@ -805,12 +1358,20 @@ const Games: React.FC = () => {
 
       {/* Oyun kartları */}
       <main className="container mx-auto px-4 py-6 pb-24 relative z-10">
+        {/* Arama sonucu bilgisi */}
+        {searchQuery && (
+          <div className="mb-4 flex items-center gap-2 text-gray-500">
+            <Search size={16} />
+            <span>"{searchQuery}" için {filteredGames.length} sonuç</span>
+          </div>
+        )}
+
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
           {filteredGames.map((game) => (
             <GameCard
               key={game.id}
               game={game}
-              onClick={() => setActiveGame(game.id)}
+              onClick={() => startGame(game.id)}
               isFavorite={favorites.includes(game.id)}
               onToggleFavorite={() => toggleFavorite(game.id)}
             />
@@ -820,16 +1381,26 @@ const Games: React.FC = () => {
         {/* Boş durum */}
         {filteredGames.length === 0 && (
           <div className="text-center py-12">
-            <div className="text-6xl mb-4">{showFavoritesOnly ? '💝' : '🎮'}</div>
+            <div className="text-6xl mb-4">{showFavoritesOnly ? '💝' : searchQuery ? '🔍' : '🎮'}</div>
             <p className="text-gray-500 text-lg">
               {showFavoritesOnly 
                 ? 'Henüz favori oyun eklemediniz' 
+                : searchQuery
+                ? `"${searchQuery}" için oyun bulunamadı`
                 : 'Bu kategoride oyun bulunamadı'}
             </p>
             {showFavoritesOnly && (
               <p className="text-gray-400 text-sm mt-2">
                 Oyunlardaki ❤️ butonuna tıklayarak favorilere ekleyebilirsiniz
               </p>
+            )}
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="mt-4 text-psiko-teal font-bold hover:underline"
+              >
+                Aramayı temizle
+              </button>
             )}
           </div>
         )}
