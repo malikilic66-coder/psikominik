@@ -15,12 +15,28 @@ const SmartMascot: React.FC<SmartMascotProps> = ({ initialPosition = { x: 50, y:
   const [isWaving, setIsWaving] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [inputText, setInputText] = useState('');
-  const [response, setResponse] = useState('Merhaba! Ben Bulutçuk. Seninle oyun oynamayı ve sohbet etmeyi çok seviyorum! ☁️');
+  const [response, setResponse] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [autoSpeakTimer, setAutoSpeakTimer] = useState<NodeJS.Timeout | null>(null);
 
-  // Canvas çizimi - Görsel düzeltmeler yapıldı
+  // Oyunlar hakkında bilgi
+  const GAMES_CONTEXT = `
+    Mevcut oyunlar:
+    1. Duygu Eşleştirme: Duyguları tanı ve eşleştir.
+    2. Balon Patlatma: Renkli balonları patlat.
+    3. Renk ve Duygu: Renklerin dünyasını keşfet.
+    4. Hayvan Dostları: Üzgün hayvanlara yardım et.
+    5. Mutluluk Bahçesi: Bahçe yetiştir.
+    6. Ritim ve Nefes: Nefes egzersizleri.
+    7. Şekil Macerası: Şekilleri tanı.
+    8. Hafıza Ustası: Kart eşleştirme.
+    9. Küçük Müzisyen: Müzik yap.
+    10. Yapboz Bahçesi: Yapboz tamamla.
+  `;
+
+  // Canvas çizimi - Görsel düzeltmeler yapıldı (Tek parça bulut)
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -31,13 +47,12 @@ const SmartMascot: React.FC<SmartMascotProps> = ({ initialPosition = { x: 50, y:
     let frame = 0;
 
     const drawMascot = () => {
-      // Canvas boyutunu artırdık ve temizleme alanını genişlettik
       const size = 120; 
       ctx.clearRect(0, 0, size, size);
       
       const cx = size / 2;
       const cy = size / 2;
-      const bounce = Math.sin(frame * 0.08) * 4; // Daha yumuşak zıplama
+      const bounce = Math.sin(frame * 0.08) * 4;
 
       // Gölge
       ctx.fillStyle = 'rgba(0,0,0,0.1)';
@@ -45,17 +60,20 @@ const SmartMascot: React.FC<SmartMascotProps> = ({ initialPosition = { x: 50, y:
       ctx.ellipse(cx, cy + 35, 25, 8, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      // Vücut (bulut şeklinde) - Kesikleri önlemek için tek path
+      // Vücut (bulut şeklinde) - Tamamen birleşik path
       ctx.fillStyle = '#4ECDC4';
       ctx.beginPath();
+      // Merkez dikdörtgen (boşlukları doldurmak için)
+      ctx.rect(cx - 20, cy - 10 + bounce, 40, 25);
       // Sol daire
-      ctx.arc(cx - 18, cy + bounce, 22, 0, Math.PI * 2);
+      ctx.arc(cx - 20, cy + 5 + bounce, 22, 0, Math.PI * 2);
       // Sağ daire
-      ctx.arc(cx + 18, cy + bounce, 22, 0, Math.PI * 2);
+      ctx.arc(cx + 20, cy + 5 + bounce, 22, 0, Math.PI * 2);
       // Üst daire
-      ctx.arc(cx, cy - 12 + bounce, 26, 0, Math.PI * 2);
-      // Boşlukları doldurmak için merkez
-      ctx.rect(cx - 18, cy - 10 + bounce, 36, 20);
+      ctx.arc(cx, cy - 15 + bounce, 25, 0, Math.PI * 2);
+      // Alt kısımları birleştir
+      ctx.arc(cx - 10, cy + 15 + bounce, 15, 0, Math.PI * 2);
+      ctx.arc(cx + 10, cy + 15 + bounce, 15, 0, Math.PI * 2);
       ctx.fill();
 
       // Yüz
@@ -65,7 +83,7 @@ const SmartMascot: React.FC<SmartMascotProps> = ({ initialPosition = { x: 50, y:
       ctx.arc(cx + 10, cy - 5 + bounce, 5, 0, Math.PI * 2);
       ctx.fill();
 
-      // Göz bebekleri - Takip eden gözler
+      // Göz bebekleri
       const lookX = (targetPosition.x - position.x) * 0.02;
       const lookY = (targetPosition.y - position.y) * 0.02;
       
@@ -75,7 +93,7 @@ const SmartMascot: React.FC<SmartMascotProps> = ({ initialPosition = { x: 50, y:
       ctx.arc(cx + 11 + lookX, cy - 4 + bounce + lookY, 2.5, 0, Math.PI * 2);
       ctx.fill();
 
-      // Gülümseme - Konuşurken hareket etsin
+      // Gülümseme
       ctx.strokeStyle = '#333';
       ctx.lineWidth = 2.5;
       ctx.lineCap = 'round';
@@ -99,7 +117,7 @@ const SmartMascot: React.FC<SmartMascotProps> = ({ initialPosition = { x: 50, y:
       ctx.fill();
 
       // El sallama
-      if (isWaving) {
+      if (isWaving || isSpeaking) {
         const waveAngle = Math.sin(frame * 0.3) * 0.5;
         ctx.save();
         ctx.translate(cx + 30, cy + bounce);
@@ -137,25 +155,46 @@ const SmartMascot: React.FC<SmartMascotProps> = ({ initialPosition = { x: 50, y:
     return () => cancelAnimationFrame(animationId);
   }, [isWaving, isSpeaking, position, targetPosition]);
 
-  // Rastgele hareket
+  // Otomatik etkileşim ve hareket
   useEffect(() => {
     const moveInterval = setInterval(() => {
       if (!isOpen) {
-        const newX = 20 + Math.random() * 60; // Ekranın ortalarında gezinsin
-        const newY = 80 + Math.random() * 40;
+        // Ekranın farklı noktalarına git (Oyunların olduğu alanlar)
+        const newX = 10 + Math.random() * 80; 
+        const newY = 20 + Math.random() * 100;
         setTargetPosition({ x: newX, y: newY });
       }
-    }, 4000);
+    }, 8000); // Her 8 saniyede bir yer değiştir
 
-    return () => clearInterval(moveInterval);
-  }, [isOpen]);
+    // Ara sıra konuşma başlat
+    const talkInterval = setInterval(() => {
+      if (!isOpen && !isSpeaking && Math.random() > 0.7) {
+        const prompts = [
+          "Burada çok eğlenceli oyunlar var! Hangisini oynamak istersin?",
+          "Benimle sohbet etmek istersen üzerine tıklayabilirsin!",
+          "Bugün kendini nasıl hissediyorsun?",
+          "Hadi bir oyun seçelim!",
+          "Seninle oynamak çok güzel!"
+        ];
+        const randomPrompt = prompts[Math.floor(Math.random() * prompts.length)];
+        speak(randomPrompt);
+        setIsWaving(true);
+        setTimeout(() => setIsWaving(false), 3000);
+      }
+    }, 20000); // Her 20 saniyede bir şansını dene
+
+    return () => {
+      clearInterval(moveInterval);
+      clearInterval(talkInterval);
+    };
+  }, [isOpen, isSpeaking]);
 
   // Pozisyon animasyonu
   useEffect(() => {
     const animate = () => {
       setPosition(prev => ({
-        x: prev.x + (targetPosition.x - prev.x) * 0.02,
-        y: prev.y + (targetPosition.y - prev.y) * 0.02,
+        x: prev.x + (targetPosition.x - prev.x) * 0.01, // Daha yavaş ve süzülerek
+        y: prev.y + (targetPosition.y - prev.y) * 0.01,
       }));
     };
     const id = setInterval(animate, 20);
@@ -167,9 +206,18 @@ const SmartMascot: React.FC<SmartMascotProps> = ({ initialPosition = { x: 50, y:
     if (!text.trim()) return;
     
     setIsLoading(true);
+    setIsOpen(true); // Konuşurken pencereyi aç
+    
     try {
-      // Sistem promptu: Çocuk dostu, kısa ve neşeli cevaplar
-      const systemPrompt = "Sen Psikominik uygulamasının sevimli bulut maskotu Bulutçuk'sun. 3-6 yaş arası çocuklarla konuşuyorsun. Cevapların çok kısa (maksimum 2 cümle), neşeli, cesaretlendirici ve eğitici olsun. Emojiler kullan.";
+      const systemPrompt = `Sen Psikominik uygulamasının sevimli bulut maskotu Bulutçuk'sun. 
+      3-6 yaş arası çocuklarla konuşuyorsun. 
+      Cevapların çok kısa (maksimum 2 cümle), neşeli, cesaretlendirici ve eğitici olsun. 
+      Emojiler kullan.
+      
+      Sayfadaki oyunlar hakkında bilgin var:
+      ${GAMES_CONTEXT}
+      
+      Çocuk sana bir şey sorduğunda bu oyunları önerebilirsin.`;
       
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`, {
         method: 'POST',
@@ -196,7 +244,9 @@ const SmartMascot: React.FC<SmartMascotProps> = ({ initialPosition = { x: 50, y:
       speak(reply);
     } catch (error) {
       console.error('Gemini hatası:', error);
-      setResponse("Üzgünüm, şu an bağlantımda küçük bir sorun var. Ama seninle oynamak hala çok eğlenceli! 🎈");
+      const fallback = "Seninle konuşmak çok güzel! Hadi oyun oynayalım! 🎈";
+      setResponse(fallback);
+      speak(fallback);
     } finally {
       setIsLoading(false);
       setInputText('');
@@ -252,24 +302,27 @@ const SmartMascot: React.FC<SmartMascotProps> = ({ initialPosition = { x: 50, y:
     <>
       {/* Maskot Karakteri */}
       <div
-        className="fixed z-50 cursor-pointer transition-transform hover:scale-110"
+        className={`fixed z-50 cursor-pointer transition-all duration-500 hover:scale-110 ${
+          isSpeaking || isOpen ? 'scale-125' : 'scale-100'
+        }`}
         style={{ 
           right: `${100 - position.x}%`, 
           top: `${position.y}px`,
-          transform: 'translateX(50%)'
+          transform: `translateX(50%) scale(${isSpeaking || isOpen ? 1.3 : 1})`
         }}
         onClick={() => {
           setIsWaving(true);
           setIsOpen(true);
+          speak("Merhaba! Ben Bulutçuk. Seninle oyun oynamak için sabırsızlanıyorum!");
           setTimeout(() => setIsWaving(false), 2000);
         }}
       >
         <canvas ref={canvasRef} width={120} height={120} />
         
-        {/* Konuşma balonu ipucu */}
-        {!isOpen && (
+        {/* Konuşma balonu ipucu - Sadece konuşmuyorken ve kapalıyken göster */}
+        {!isOpen && !isSpeaking && (
           <div className="absolute -top-2 right-0 bg-white px-3 py-1 rounded-full rounded-bl-none shadow-md text-xs font-bold animate-bounce">
-            Merhaba! 👋
+            Benimle konuş! 🎤
           </div>
         )}
       </div>
