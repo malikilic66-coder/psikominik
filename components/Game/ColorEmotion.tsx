@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { X, Play, Maximize2, Minimize2 } from 'lucide-react';
 
 // Renkler - parlak, çocuk dostu
 const COLORS = [
