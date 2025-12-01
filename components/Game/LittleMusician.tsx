@@ -64,7 +64,7 @@ const PianoKey: React.FC<{
   isPressed: boolean;
   onPress: () => void;
   onRelease: () => void;
-}> = ({ note, index, isPressed, onPress, onRelease }) => {
+}> = React.memo(({ note, index, isPressed, onPress, onRelease }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -140,14 +140,14 @@ const PianoKey: React.FC<{
       )}
     </div>
   );
-};
+});
 
 // Davul pedi
 const DrumPad: React.FC<{
   drum: DrumSound;
   isPressed: boolean;
   onPress: () => void;
-}> = ({ drum, isPressed, onPress }) => {
+}> = React.memo(({ drum, isPressed, onPress }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const frameRef = useRef(0);
 
@@ -214,7 +214,7 @@ const DrumPad: React.FC<{
       <div className="text-xs font-bold text-gray-600">{drum.name}</div>
     </div>
   );
-};
+});
 
 // Ksilofon çubuğu
 const XylophoneBar: React.FC<{
@@ -222,7 +222,7 @@ const XylophoneBar: React.FC<{
   index: number;
   isPressed: boolean;
   onPress: () => void;
-}> = ({ note, index, isPressed, onPress }) => {
+}> = React.memo(({ note, index, isPressed, onPress }) => {
   const barHeight = 80 - index * 6;
   const barWidth = 45 - index * 2;
 
@@ -268,7 +268,7 @@ const XylophoneBar: React.FC<{
       )}
     </div>
   );
-};
+});
 
 // Renk ayarlama fonksiyonu
 function adjustColor(color: string, amount: number): string {

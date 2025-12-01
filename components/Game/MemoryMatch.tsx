@@ -49,7 +49,7 @@ interface Card {
 }
 
 // Animasyonlu kart arka yüzü
-const CardBack: React.FC<{ size: number }> = ({ size }) => {
+const CardBack: React.FC<{ size: number }> = React.memo(({ size }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -84,7 +84,7 @@ const CardBack: React.FC<{ size: number }> = ({ size }) => {
   }, [size]);
 
   return <canvas ref={canvasRef} width={size} height={size} className="rounded-2xl" />;
-};
+});
 
 // Yardımcı yıldız çizim fonksiyonu
 function drawStar(ctx: CanvasRenderingContext2D, cx: number, cy: number, outerR: number, points: number, innerRatio: number) {
@@ -103,10 +103,11 @@ function drawStar(ctx: CanvasRenderingContext2D, cx: number, cy: number, outerR:
 }
 
 // Animasyonlu karakter yüzü
-const CharacterFace: React.FC<{ character: CardCharacter; size: number; isMatched: boolean }> = ({ 
+const CharacterFace: React.FC<{ character: CardCharacter; size: number; isMatched: boolean; isActive: boolean }> = React.memo(({ 
   character, 
   size, 
-  isMatched 
+  isMatched,
+  isActive
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const frameRef = useRef(0);
@@ -150,7 +151,7 @@ const CharacterFace: React.FC<{ character: CardCharacter; size: number; isMatche
       }
 
       // Emoji
-      const bounce = isMatched ? Math.sin(frame * 0.15) * 5 : Math.sin(frame * 0.05) * 2;
+      const bounce = isMatched ? Math.sin(frame * 0.15) * 5 : (isActive ? Math.sin(frame * 0.05) * 2 : 0);
       ctx.font = `${size * 0.5}px Arial`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
@@ -162,16 +163,20 @@ const CharacterFace: React.FC<{ character: CardCharacter; size: number; isMatche
       ctx.fillText(character.name, size / 2, size * 0.88);
 
       frameRef.current++;
-      animationId = requestAnimationFrame(draw);
+      if (isActive || isMatched) {
+        animationId = requestAnimationFrame(draw);
+      }
     };
 
     draw();
 
-    return () => cancelAnimationFrame(animationId);
-  }, [character, size, isMatched]);
+    return () => {
+      if (animationId) cancelAnimationFrame(animationId);
+    };
+  }, [character, size, isMatched, isActive]);
 
   return <canvas ref={canvasRef} width={size} height={size} className="rounded-2xl" />;
-};
+});
 
 // Tek kart bileşeni
 const MemoryCard: React.FC<{
@@ -179,7 +184,7 @@ const MemoryCard: React.FC<{
   size: number;
   onClick: () => void;
   disabled: boolean;
-}> = ({ card, size, onClick, disabled }) => {
+}> = React.memo(({ card, size, onClick, disabled }) => {
   return (
     <div
       className={`relative cursor-pointer transition-transform duration-300 ${
@@ -215,12 +220,17 @@ const MemoryCard: React.FC<{
             transform: 'rotateY(180deg)',
           }}
         >
-          <CharacterFace character={card.character} size={size} isMatched={card.isMatched} />
+          <CharacterFace 
+            character={card.character} 
+            size={size} 
+            isMatched={card.isMatched} 
+            isActive={card.isFlipped || card.isMatched}
+          />
         </div>
       </div>
     </div>
   );
-};
+});
 
 // Konfeti efekti
 const WinConfetti: React.FC<{ active: boolean }> = ({ active }) => {

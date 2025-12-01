@@ -145,7 +145,7 @@ const PuzzlePieceCanvas: React.FC<{
   isSelected: boolean;
   isDragging: boolean;
   onSelect: () => void;
-}> = ({ piece, image, pieceSize, gridSize, isSelected, isDragging, onSelect }) => {
+}> = React.memo(({ piece, image, pieceSize, gridSize, isSelected, isDragging, onSelect }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -224,7 +224,7 @@ const PuzzlePieceCanvas: React.FC<{
       onClick={onSelect}
     />
   );
-};
+});
 
 // Hedef slot
 const TargetSlot: React.FC<{
@@ -235,7 +235,7 @@ const TargetSlot: React.FC<{
   isHighlighted: boolean;
   image: PuzzleImage;
   gridSize: number;
-}> = ({ x, y, slotSize, isFilled, isHighlighted, image, gridSize }) => {
+}> = React.memo(({ x, y, slotSize, isFilled, isHighlighted, image, gridSize }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -269,7 +269,7 @@ const TargetSlot: React.FC<{
   }, [x, y, slotSize, isFilled, isHighlighted, image, gridSize]);
 
   return <canvas ref={canvasRef} width={slotSize} height={slotSize} />;
-};
+});
 
 // Konfeti
 const Confetti: React.FC<{ active: boolean }> = ({ active }) => {

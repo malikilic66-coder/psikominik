@@ -52,7 +52,7 @@ const ShapeRenderer: React.FC<{
   hasEyes?: boolean;
   isHappy?: boolean;
   animate?: boolean;
-}> = ({ type, color, size, isTarget = false, hasEyes = true, isHappy = false, animate = false }) => {
+}> = React.memo(({ type, color, size, isTarget = false, hasEyes = true, isHappy = false, animate = false }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const frameRef = useRef(0);
 
@@ -217,7 +217,7 @@ const ShapeRenderer: React.FC<{
   }, [type, color, size, isTarget, hasEyes, isHappy, animate]);
 
   return <canvas ref={canvasRef} width={size} height={size} className="pointer-events-none" />;
-};
+});
 
 // Yardımcı çizim fonksiyonları
 function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
