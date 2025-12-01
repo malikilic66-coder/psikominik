@@ -10,6 +10,7 @@ import ShapeAdventure from '../components/Game/ShapeAdventure';
 import MemoryMatch from '../components/Game/MemoryMatch';
 import LittleMusician from '../components/Game/LittleMusician';
 import PuzzleGarden from '../components/Game/PuzzleGarden';
+import SmartMascot from '../components/UI/SmartMascot';
 
 // Oyun tipleri
 type GameId = 'emotion' | 'balloon' | 'color' | 'animal' | 'garden' | 'breath' | 'shapes' | 'memory' | 'music' | 'puzzle';
@@ -475,152 +476,8 @@ const DifficultyStars: React.FC<{ level: 1 | 2 | 3 }> = ({ level }) => (
   </div>
 );
 
-// Animasyonlu Maskot Bileşeni
-const FloatingMascot: React.FC = () => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [position, setPosition] = useState({ x: 50, y: 100 });
-  const [targetPosition, setTargetPosition] = useState({ x: 50, y: 100 });
-  const [isWaving, setIsWaving] = useState(false);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    let animationId: number;
-    let frame = 0;
-
-    const drawMascot = () => {
-      const size = 80;
-      ctx.clearRect(0, 0, size, size);
-      
-      const cx = size / 2;
-      const cy = size / 2;
-      const bounce = Math.sin(frame * 0.1) * 3;
-
-      // Gölge
-      ctx.fillStyle = 'rgba(0,0,0,0.1)';
-      ctx.beginPath();
-      ctx.ellipse(cx, cy + 28, 15, 5, 0, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Vücut (bulut şeklinde)
-      ctx.fillStyle = '#4ECDC4';
-      ctx.beginPath();
-      ctx.arc(cx - 12, cy + bounce, 18, 0, Math.PI * 2);
-      ctx.arc(cx + 12, cy + bounce, 18, 0, Math.PI * 2);
-      ctx.arc(cx, cy - 8 + bounce, 20, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Yüz
-      ctx.fillStyle = '#FFF';
-      ctx.beginPath();
-      ctx.arc(cx - 8, cy - 5 + bounce, 4, 0, Math.PI * 2);
-      ctx.arc(cx + 8, cy - 5 + bounce, 4, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Göz bebekleri
-      ctx.fillStyle = '#333';
-      ctx.beginPath();
-      ctx.arc(cx - 7, cy - 4 + bounce, 2, 0, Math.PI * 2);
-      ctx.arc(cx + 9, cy - 4 + bounce, 2, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Gülümseme
-      ctx.strokeStyle = '#333';
-      ctx.lineWidth = 2;
-      ctx.lineCap = 'round';
-      ctx.beginPath();
-      ctx.arc(cx, cy + 5 + bounce, 8, 0.1 * Math.PI, 0.9 * Math.PI);
-      ctx.stroke();
-
-      // Yanaklar
-      ctx.fillStyle = 'rgba(255, 150, 150, 0.5)';
-      ctx.beginPath();
-      ctx.ellipse(cx - 18, cy + 2 + bounce, 5, 3, 0, 0, Math.PI * 2);
-      ctx.ellipse(cx + 18, cy + 2 + bounce, 5, 3, 0, 0, Math.PI * 2);
-      ctx.fill();
-
-      // El sallama
-      if (isWaving) {
-        const waveAngle = Math.sin(frame * 0.3) * 0.5;
-        ctx.save();
-        ctx.translate(cx + 25, cy - 5 + bounce);
-        ctx.rotate(waveAngle);
-        ctx.fillStyle = '#4ECDC4';
-        ctx.beginPath();
-        ctx.ellipse(0, 0, 8, 12, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
-      }
-
-      // Yıldız parıltıları
-      if (frame % 30 < 15) {
-        ctx.fillStyle = '#FFD700';
-        const starX = cx + 25 + Math.sin(frame * 0.1) * 5;
-        const starY = cy - 25 + bounce;
-        ctx.beginPath();
-        for (let i = 0; i < 5; i++) {
-          const angle = (i * 4 * Math.PI) / 5 - Math.PI / 2;
-          const px = starX + Math.cos(angle) * 5;
-          const py = starY + Math.sin(angle) * 5;
-          if (i === 0) ctx.moveTo(px, py);
-          else ctx.lineTo(px, py);
-        }
-        ctx.closePath();
-        ctx.fill();
-      }
-
-      frame++;
-      animationId = requestAnimationFrame(drawMascot);
-    };
-
-    drawMascot();
-
-    return () => cancelAnimationFrame(animationId);
-  }, [isWaving]);
-
-  // Rastgele hareket
-  useEffect(() => {
-    const moveInterval = setInterval(() => {
-      const newX = 30 + Math.random() * 40;
-      const newY = 80 + Math.random() * 40;
-      setTargetPosition({ x: newX, y: newY });
-    }, 5000);
-
-    return () => clearInterval(moveInterval);
-  }, []);
-
-  // Pozisyon animasyonu
-  useEffect(() => {
-    const animate = () => {
-      setPosition(prev => ({
-        x: prev.x + (targetPosition.x - prev.x) * 0.02,
-        y: prev.y + (targetPosition.y - prev.y) * 0.02,
-      }));
-    };
-    const id = setInterval(animate, 50);
-    return () => clearInterval(id);
-  }, [targetPosition]);
-
-  return (
-    <div
-      className="fixed z-30 cursor-pointer transition-transform hover:scale-110"
-      style={{ 
-        right: `${100 - position.x}%`, 
-        top: `${position.y}px`,
-        transform: 'translateX(50%)'
-      }}
-      onClick={() => {
-        setIsWaving(true);
-        setTimeout(() => setIsWaving(false), 2000);
-      }}
-    >
-      <canvas ref={canvasRef} width={80} height={80} />
-    </div>
-  );
-};
+// Animasyonlu Maskot Bileşeni (SmartMascot ile değiştirildi)
+// const FloatingMascot... (removed)
 
 // Günün Oyunu Banner
 const DailyGameBanner: React.FC<{ onPlay: (gameId: GameId) => void }> = ({ onPlay }) => {
@@ -1164,7 +1021,7 @@ const Games: React.FC = () => {
       </div>
 
       {/* Animasyonlu Maskot */}
-      <FloatingMascot />
+      <SmartMascot />
 
       {/* Tam ekran oyun */}
       <FullScreenGame 
